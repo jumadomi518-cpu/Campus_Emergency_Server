@@ -4,7 +4,7 @@ const http = require("http");
 const { Pool } = require("pg");
 const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 //DATABASE
 const pool = new Pool({
