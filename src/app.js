@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-
+const cors = require("cors");
 //DATABASE
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -14,6 +14,7 @@ const pool = new Pool({
 
 // EXPRESS
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const registerRouter = require("./routes/registerRouter.js");
