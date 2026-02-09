@@ -20,7 +20,7 @@ async function resendOtp(req, res) {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     const result = await pool.query(
-      "UPDATE users SET otp = $1, expires_at = $2 WHERE email = $3 RETURNING id",
+      "UPDATE users SET otp = $1, expires_at = $2 WHERE email = $3 RETURNING user_id",
       [hashedOtp, expiresAt, email]
     );
 
