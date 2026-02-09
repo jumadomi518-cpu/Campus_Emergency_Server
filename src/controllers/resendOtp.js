@@ -1,3 +1,16 @@
+
+
+
+const { Pool } = require("pg");
+const pool = new Pool({
+connectionString: process.env.DATABASE_URL,
+ssl: { rejectUnauthorized: false }
+})
+const bcrypt = require("bcryptjs");
+
+const axios = require("axios");
+
+
 async function resendOtp(req, res) {
   try {
     const { email } = req.body;
