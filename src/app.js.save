@@ -44,26 +44,13 @@ function distance(lat1, lon1, lat2, lon2) {
 }
 
 // WS connection
-
 wss.on("connection", ws => {
-  ws.isAuthenticated = false;
-
   ws.on("message", async data => {
     let msg;
-    try {
-      msg = JSON.parse(data.toString());
-    } catch {
-      return;
-    }
+    try { msg = JSON.parse(data.toString()); } catch { return; }
 
-    // AUTH — ONCE
-    if (!ws.isAuthenticated) {
-      if (!msg.token) {
-        ws.send(JSON.stringify({ type: "AUTH_ERROR" }));
-        ws.close();
-        return;
-      }
-
+    // AUTH
+    if (msg.token) {
       try {
         const decoded = jwt.verify(msg.token, process.env.SECRET);
         ws.user = {
@@ -73,18 +60,14 @@ wss.on("connection", ws => {
           role: decoded.role
         };
         ws.role = decoded.role;
-        ws.isAuthenticated = true;
-        return; // stop here, wait for next message
       } catch {
         ws.send(JSON.stringify({ type: "AUTH_ERROR" }));
-        ws.close();
         return;
       }
     }
 
-    // Location updates
-    if (typeof msg.latitude === "number") ws.lat = msg.latitude;
-    if (typeof msg.longitude === "number") ws.lng = msg.longitude;
+    if (msg.latitude) ws.lat = msg.latitude;
+    if (msg.longitude) ws.lng = msg.longitude;
 
     // USER EMERGENCY
     if (ws.role === "user" && msg.message) {
@@ -95,12 +78,13 @@ wss.on("connection", ws => {
          RETURNING id`,
         [ws.user.id, ws.user.name, ws.user.phone, msg.message, msg.latitude, msg.longitude]
       );
-
       const alertId = result.rows[0].id;
 
+      // Broadcast
       wss.clients.forEach(client => {
         if (client.readyState !== WebSocket.OPEN) return;
 
+        // Admin receives full details
         if (client.role === "admin") {
           client.send(JSON.stringify({
             type: "NEW_ALERT",
@@ -115,12 +99,17 @@ wss.on("connection", ws => {
           }));
         }
 
+        // Nearby students receive limited info
         if (client.role === "user" && client.lat) {
           const d = distance(msg.latitude, msg.longitude, client.lat, client.lng);
           if (d <= 200) {
             client.send(JSON.stringify({
               type: "NEARBY_ALERT",
-              data: { message: msg.message }
+              data: {
+                message: msg.message,
+                latitude: msg.latitude,
+                longitude: msg.longitude
+              }
             }));
           }
         }
@@ -129,23 +118,11 @@ wss.on("connection", ws => {
 
     // ADMIN resolves alert
     if (ws.role === "admin" && msg.type === "RESOLVE_ALERT") {
-      await pool.query(
-        "UPDATE alerts SET status='RESOLVED' WHERE id=$1",
-        [msg.alertId]
-      );
+      await pool.query("UPDATE alerts SET status='RESOLVED' WHERE id=$1", [msg.alertId]);
 
       wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
-            type: "ALERT_RESOLVED",
-            alertId: msg.alertId
-          }));
-        }
-      });
-    }
-  });
-});
-
 
 
 // START SERVER
