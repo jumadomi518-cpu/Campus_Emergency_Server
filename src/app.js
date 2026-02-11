@@ -14,7 +14,12 @@ const pool = new Pool({
 
 // EXPRESS
 const app = express();
-app.use(cors());
+app.use(cors({
+origin: [
+"https://emergency-system-frontend.vercel.app/",
+"http://localhost:7700/"
+]
+  }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const registerRouter = require("./routes/registerRouter.js");
