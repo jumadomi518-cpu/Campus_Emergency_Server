@@ -7,16 +7,32 @@
  ssl: { rejectUnauthorized: false }
  });
 
- async function addUser(user) {
- const { name, phone, email, password } = user;
- const hashedPassword = await bcrypt.hash(password, 10);
- const { rows } = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
- if (rows.length > 0) {
- return "user exists";
- }
- await pool.query("INSERT INTO users (name, phone, email, password, status) VALUES ($1, $2, $3, $4, $5)", [ name, phone, email, hashedPassword, "unverified"]);
- return "user added successfully";
- }
+async function addUser(user) {
+  try {
+    const { name, phone, email, password } = user;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const { rows } = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (rows.length > 0) {
+      return "user exists";
+    }
+
+    await pool.query(
+      "INSERT INTO users (name, phone, email, password, status) VALUES ($1, $2, $3, $4, $5)",
+      [name, phone, email, hashedPassword, "unverified"]
+    );
+
+    return "user added successfully";
+
+  } catch (error) {
+    console.error("Add user error:", error);
+    return "error adding user";
+  }
+}
 
 module.exports = addUser;
