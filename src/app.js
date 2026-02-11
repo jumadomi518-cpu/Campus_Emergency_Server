@@ -16,8 +16,8 @@ const pool = new Pool({
 const app = express();
 app.use(cors({
 origin: [
-"https://emergency-system-frontend.vercel.app/",
-"http://localhost:7700/"
+"https://emergency-system-frontend.vercel.app",
+"http://localhost:7700"
 ]
   }));
 app.use(express.json());
