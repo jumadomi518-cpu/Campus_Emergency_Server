@@ -43,7 +43,7 @@ const registerRouter = require("./routes/registerRouter.js");
 const loginRouter = require("./routes/loginRouter.js");
 app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
-const webpush = require('web-push');
+
 // Generate keys
 const keys = webpush.generateVAPIDKeys();
 console.log(keys);
