@@ -45,7 +45,7 @@ app.use("/api/login", loginRouter);
 
 // WEB PUSH
 webpush.setVapidDetails(
-  'mailto:' + (process.env.VAPID_EMAIL || 'admin@example.com'),
+  'mailto:' + (process.env.VAPID_EMAIL || 'jumadomi518@mail.com'),
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
@@ -63,20 +63,23 @@ app.post("/api/subscribe", async (req, res) => {
   try {
     const { userId, subscription } = req.body;
 
-    if (!userId || !subscription?.endpoint) {
-      return res.status(400).json({ success: false, message: "Invalid subscription data" });
-    }
+if (!userId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+  return res.status(400).json({ success: false, message: "Invalid subscription data" });
+}
 
-    const endpoint = subscription.endpoint;
+const endpoint = subscription.endpoint;
+const { p256dh, auth } = subscription.keys;
 
-    // Insert or update subscription
-    await pool.query(
-      `INSERT INTO subscriptions (user_id, endpoint)
-       VALUES ($1, $2)
-       ON CONFLICT (endpoint) DO UPDATE
-       SET user_id = $1`,
-      [userId, endpoint]
-    );
+// Insert or update subscription
+await pool.query(
+  `INSERT INTO subscriptions (user_id, endpoint, p256dh, auth)
+   VALUES ($1, $2, $3, $4)
+   ON CONFLICT (endpoint) DO UPDATE
+   SET user_id = $1,
+       p256dh = EXCLUDED.p256dh,
+       auth = EXCLUDED.auth`,
+  [userId, endpoint, p256dh, auth]
+);
 
     console.log(`Saved subscription for user ${userId}: ${endpoint}`);
     res.json({ success: true });
