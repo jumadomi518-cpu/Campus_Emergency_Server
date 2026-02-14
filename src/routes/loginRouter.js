@@ -57,6 +57,7 @@ const pool = new Pool({
     return res.json({
       success: true,
       role: user.role,
+      userId: user.user_id,
       token
     });
 
