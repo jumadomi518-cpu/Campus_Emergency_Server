@@ -57,15 +57,43 @@ const wss = new WebSocket.Server({ server });
 console.log("Server running on port", process.env.PORT || 3000);
 
 // REST: Save Push Subscription
-app.post("/api/subscribe", (req, res) => {
+
+
+app.post("/api/subscribe", async (req, res) => {
   try {
     const { userId, subscription } = req.body;
-    if(!userId || !subscription) return res.status(400).send({success:false, error:"Invalid body"});
-    subscriptions.set(userId, subscription);
-    res.send({ success: true });
-  } catch(err){
+
+    if (!userId || !subscription?.endpoint) {
+      return res.status(400).json({ success: false, message: "Invalid subscription data" });
+    }
+
+    const endpoint = subscription.endpoint;
+
+    // Insert or update subscription
+    await pool.query(
+      `INSERT INTO subscriptions (user_id, endpoint)
+       VALUES ($1, $2)
+       ON CONFLICT (endpoint) DO UPDATE
+       SET user_id = $1`,
+      [userId, endpoint]
+    );
+
+    console.log(`Saved subscription for user ${userId}: ${endpoint}`);
+    res.json({ success: true });
+  } catch (err) {
     console.error("Subscribe error:", err);
-    res.status(500).send({success:false});
+    res.status(500).json({ success: false });
+  }
+});
+
+// Optional: Get All Subscriptions
+app.get("/api/subscriptions", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM subscriptions");
+    res.json({ success: true, subscriptions: result.rows });
+  } catch (err) {
+    console.error("Fetch subscriptions error:", err);
+    res.status(500).json({ success: false });
   }
 });
 
