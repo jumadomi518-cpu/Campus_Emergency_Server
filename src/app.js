@@ -31,51 +31,51 @@ const pool = new Pool({
 const app = express();
 app.use(cors({
   origin: [
-    "https://emergency-system-frontend.vercel.app",
-    "http://localhost:7700"
+    process.env.FRONTEND_URL || "http://localhost:7700"
   ]
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// ROUTES
 const registerRouter = require("./routes/registerRouter.js");
 const loginRouter = require("./routes/loginRouter.js");
 app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
 
-// Generate keys
-const keys = webpush.generateVAPIDKeys();
-console.log(keys);
-
-
-// WEB PUSH CONFIG
+// WEB PUSH
 webpush.setVapidDetails(
-  'mailto: jumadomi518@gmail.com',
+  'mailto:' + (process.env.VAPID_EMAIL || 'admin@example.com'),
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
 
-
-// HTTP + WebSocket Server
+// HTTP + WEBSOCKET SERVER
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-console.log("Server running on port 3000");
+
+console.log("Server running on port", process.env.PORT || 3000);
 
 // REST: Save Push Subscription
 app.post("/api/subscribe", (req, res) => {
-  const { userId, subscription } = req.body;
-  subscriptions.set(userId, subscription);
-  res.send({ success: true });
+  try {
+    const { userId, subscription } = req.body;
+    if(!userId || !subscription) return res.status(400).send({success:false, error:"Invalid body"});
+    subscriptions.set(userId, subscription);
+    res.send({ success: true });
+  } catch(err){
+    console.error("Subscribe error:", err);
+    res.status(500).send({success:false});
+  }
 });
 
 // REST: Fallback for True/False Validation
 app.post("/api/validate-alert", async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).send("Unauthorized");
-
-  const token = auth.split(" ")[1];
   try {
+    const auth = req.headers.authorization;
+    if (!auth) return res.status(401).send("Unauthorized");
+
+    const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.SECRET);
     const { alertId, vote } = req.body;
 
@@ -84,19 +84,20 @@ app.post("/api/validate-alert", async (req, res) => {
     const trueVotes = await countTrueVotes(alertId);
     if (trueVotes >= 2) {
       const alert = await getAlertById(alertId);
-      if (alert.status === "PENDING") {
+      if (alert && alert.status === "PENDING") {
         await updateAlertStatus(alert.id, "ACTIVE");
         assignNearestResponder(alert);
       }
     }
 
     res.send({ success: true });
-  } catch {
+  } catch(err){
+    console.error("Validate alert error:", err);
     res.status(401).send("Invalid token");
   }
 });
 
-// WEBSOCKET CONNECTION
+//  WEBSOCKET CONNECTION
 wss.on("connection", async ws => {
   ws.isAuthenticated = false;
   ws.userId = null;
@@ -108,13 +109,9 @@ wss.on("connection", async ws => {
     let msg;
     try { msg = JSON.parse(data.toString()); } catch { return; }
 
-    // AUTHENTICATION USING TOKEN
+    // AUTH
     if (!ws.isAuthenticated) {
-      if (!msg.token) {
-        ws.send(JSON.stringify({ type: "AUTH_ERROR", message: "Token required" }));
-        ws.close();
-        return;
-      }
+      if (!msg.token) return ws.close();
       try {
         const decoded = jwt.verify(msg.token, process.env.SECRET);
         ws.user = {
@@ -130,32 +127,30 @@ wss.on("connection", async ws => {
         clients.set(ws.userId, ws);
         ws.send(JSON.stringify({ type: "AUTH_SUCCESS", user: ws.user }));
 
-        // OFFLINE RESPONDER RECOVERY
+        // Offline responder recovery
         if(ws.role !== "user") {
-          const result = await pool.query(
-            "SELECT * FROM alerts WHERE assigned_to=$1 AND status='IN_PROGRESS'",
-            [ws.userId]
-          );
-          for(const alert of result.rows){
-            ws.send(JSON.stringify({
-              type: "EMERGENCY_ASSIGNMENT",
-              alertId: alert.id,
-              message: alert.message,
-              latitude: alert.latitude,
-              longitude: alert.longitude,
-              emergencyType: alert.emergency_type,
-              responder: {
-                id: ws.userId,
-                lat: ws.lat,
-                lng: ws.lng
-              }
-            }));
-          }
+          try {
+            const result = await pool.query(
+              "SELECT * FROM alerts WHERE assigned_to=$1 AND status='IN_PROGRESS'",
+              [ws.userId]
+            );
+            for(const alert of result.rows){
+              ws.send(JSON.stringify({
+                type: "EMERGENCY_ASSIGNMENT",
+                alertId: alert.id,
+                message: alert.message,
+                latitude: alert.latitude || 0,
+                longitude: alert.longitude || 0,
+                emergencyType: alert.emergency_type,
+                responder: { id: ws.userId, lat: ws.lat || 0, lng: ws.lng || 0 }
+              }));
+            }
+          } catch(err){ console.error("Offline recovery error:", err); }
         }
 
         return;
-      } catch {
-        ws.send(JSON.stringify({ type: "AUTH_ERROR", message: "Invalid token" }));
+      } catch(err){
+        console.error("Auth error:", err);
         ws.close();
         return;
       }
@@ -168,36 +163,41 @@ wss.on("connection", async ws => {
       return;
     }
 
-    // USER TRIGGERS EMERGENCY
+    // EMERGENCY CREATION
     if (ws.role === "user" && msg.type === "EMERGENCY") {
-      const alert = await createAlert(
-        ws.user,
-        msg.message,
-        msg.latitude,
-        msg.longitude,
-        msg.emergencyType
-      );
-      notifyNearbyUsers(alert);
+      try {
+        const alert = await createAlert(
+          ws.user,
+          msg.message,
+          msg.latitude,
+          msg.longitude,
+          msg.emergencyType
+        );
+        notifyNearbyUsers(alert);
+      } catch(err){ console.error("Create alert error:", err); }
       return;
     }
 
-    // NEARBY USER VALIDATES EMERGENCY
+    // VALIDATION RESPONSE
     if (msg.type === "VALIDATE_RESPONSE") {
-      await saveValidation(msg.alertId, ws.userId, msg.vote);
-      const trueVotes = await countTrueVotes(msg.alertId);
-      if (trueVotes >= 2) {
-        const alert = await getAlertById(msg.alertId);
-        if (alert.status === "PENDING") {
-          await updateAlertStatus(alert.id, "ACTIVE");
-          assignNearestResponder(alert);
+      try {
+        await saveValidation(msg.alertId, ws.userId, msg.vote);
+        const trueVotes = await countTrueVotes(msg.alertId);
+        if (trueVotes >= 2) {
+          const alert = await getAlertById(msg.alertId);
+          if (alert && alert.status === "PENDING") {
+            await updateAlertStatus(alert.id, "ACTIVE");
+            assignNearestResponder(alert);
+          }
         }
-      }
+      } catch(err){ console.error("Validation response error:", err); }
       return;
     }
 
-    // RESPONDER ACCEPT / REJECT
+    // RESPONDER RESPONSE
     if (msg.type === "RESPONDER_RESPONSE") {
-      await handleResponderResponse(ws, msg);
+      try { await handleResponderResponse(ws, msg); }
+      catch(err){ console.error("Responder response error:", err); }
       return;
     }
   });
