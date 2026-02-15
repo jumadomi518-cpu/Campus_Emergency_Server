@@ -18,32 +18,31 @@ const alertLocks = new Map();    // alertId responderId
 const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
 
 // NOTIFY NEARBY USERS
-
- async function notifyNearbyUsers(alert){
+async function notifyNearbyUsers(alert) {
   try {
     for (const client of clients.values()) {
+      if (client.readyState !== WebSocket.OPEN) continue;
+      if (client.userId === alert.user_id) continue; // don't notify the sender
+      if (!client.lat || !client.lng) continue; // skip if location unknown
 
-      if(client.readyState !== WebSocket.OPEN) continue;
-if(client.userId === alert.user_id) continue;
-  //    if(!client.lat || !client.lng) continue;
+      // Calculate distance between alert and user
+      const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
+      if (d > DISTANCE_THRESHOLD) continue; // skip users too far away
 
-    //  const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
-      //if(d > DISTANCE_THRESHOLD) continue;
-
-      // WebSocket notification
+      // Send WebSocket notification
       client.send(JSON.stringify({
         type: "VALIDATE_ALERT",
         alertId: alert.id,
-        name: alert.ws.user.name,
-        phone: alert.ws.user.phone,
+        name: client.user?.name || "Unknown",
+        phone: client.user?.phone || "Unknown",
         message: alert.message,
         latitude: alert.latitude,
         longitude: alert.longitude,
-        emergencyType: alert.emergency_type
+        emergencyType: alert.emergency_type,
+        distance: d
       }));
 
-      // Push fallback
-if(!clients.has(client.userId)) {
+      // Push fallback (optional)
       const result = await pool.query(
         "SELECT * FROM subscriptions WHERE user_id = $1",
         [client.userId]
@@ -52,33 +51,29 @@ if(!clients.has(client.userId)) {
       for (const sub of result.rows) {
         const pushSub = {
           endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth
-          }
+          keys: { p256dh: sub.p256dh, auth: sub.auth }
         };
 
         try {
           await webpush.sendNotification(pushSub, JSON.stringify({
             alertId: alert.id,
             message: alert.message,
-            emergencyType: alert.emergency_type
+            emergencyType: alert.emergency_type,
+            distance: d
           }));
         } catch (err) {
           if (err.statusCode === 410 || err.statusCode === 404) {
-            await pool.query(
-              "DELETE FROM subscriptions WHERE endpoint = $1",
-              [sub.endpoint]
-            );
+            await pool.query("DELETE FROM subscriptions WHERE endpoint = $1", [sub.endpoint]);
           }
         }
       }
     }
-  } catch(err){
+  } catch (err) {
     console.error("notifyNearbyUsers error:", err);
   }
 }
-}
+
+
 // ASSIGN NEAREST RESPONDER
 function assignNearestResponder(alert){
   try {
