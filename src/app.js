@@ -10,7 +10,6 @@ const webpush = require("web-push");
 const {
   clients,
   alertLocks,
-  subscriptions,
   notifyNearbyUsers,
   assignNearestResponder,
   handleResponderResponse,
@@ -89,7 +88,7 @@ await pool.query(
   }
 });
 
-// Optional: Get All Subscriptions
+// Get All Subscriptions
 app.get("/api/subscriptions", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM subscriptions");
@@ -100,7 +99,7 @@ app.get("/api/subscriptions", async (req, res) => {
   }
 });
 
-// REST: Fallback for True/False Validation
+// Fallback for True/False Validation
 app.post("/api/validate-alert", async (req, res) => {
   try {
     const auth = req.headers.authorization;

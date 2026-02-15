@@ -1,52 +1,77 @@
 const distance = require("../utils/distance");
 const { createAlert, getAlertById, updateAlertStatus, saveValidation, countTrueVotes } = require("../models/alertModel");
 const webpush = require("web-push");
+const { Pool } = require("pg");
+const pool = new Pool({
+connectionString: process.env.DATABASE_URL,
+ssl: { rejectUnauthorized: false }
+ });
+
 
 // IN-MEMORY MAPS
 const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
-const subscriptions = new Map(); // userId push subscription
 
 // CONFIG
 const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
 
 // NOTIFY NEARBY USERS
-function notifyNearbyUsers(alert){
+
+ async function notifyNearbyUsers(alert){
   try {
-    clients.forEach(client => {
-      if(client.readyState !== client.OPEN) return;
-      if(client.role !== "user" || client.userId === alert.user_id) return;
-      if(!client.lat || !client.lng) return;
+    for (const client of clients.values()) {
+
+      if(client.readyState !== client.OPEN) continue;
+      if(client.role !== "user" || client.userId === alert.user_id) continue;
+      if(!client.lat || !client.lng) continue;
 
       const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
-      if(d > DISTANCE_THRESHOLD) return;
+      if(d > DISTANCE_THRESHOLD) continue;
 
       // WebSocket notification
-      try {
-        client.send(JSON.stringify({
-          type: "VALIDATE_ALERT",
-          alertId: alert.id,
-          message: alert.message,
-          latitude: alert.latitude,
-          longitude: alert.longitude,
-          emergencyType: alert.emergency_type
-        }));
-      } catch(err){ console.error("WS notify error:", err); }
+      client.send(JSON.stringify({
+        type: "VALIDATE_ALERT",
+        alertId: alert.id,
+        message: alert.message,
+        latitude: alert.latitude,
+        longitude: alert.longitude,
+        emergencyType: alert.emergency_type
+      }));
 
-      // Web Push fallback
-      const sub = subscriptions.get(client.userId);
-      if(sub){
-        webpush.sendNotification(sub, JSON.stringify({
-          alertId: alert.id,
-          message: alert.message,
-          emergencyType: alert.emergency_type
-        })).catch(err=>{
-          console.log(`Push failed for user ${client.userId}:`, err);
+      // Push fallback
+      const result = await pool.query(
+        "SELECT * FROM push_subscriptions WHERE user_id = $1",
+        [client.userId]
+      );
 
-        });
+      for (const sub of result.rows) {
+        const pushSub = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth
+          }
+        };
+
+        try {
+          await webpush.sendNotification(pushSub, JSON.stringify({
+            alertId: alert.id,
+            message: alert.message,
+            emergencyType: alert.emergency_type
+          }));
+        } catch (err) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await pool.query(
+              "DELETE FROM push_subscriptions WHERE endpoint = $1",
+              [sub.endpoint]
+            );
+          }
+        }
       }
-    });
-  } catch(err){ console.error("notifyNearbyUsers error:", err); }
+    }
+  } catch(err){
+    console.error("notifyNearbyUsers error:", err);
+  }
 }
 
 // ASSIGN NEAREST RESPONDER
@@ -78,7 +103,7 @@ function assignNearestResponder(alert){
     const responder = availableResponders[0].ws;
 
     // Atomic lock
-    if(alertLocks.has(alert.id)) return; // someone else got it first
+    if(alertLocks.has(alert.id)) return;
     alertLocks.set(alert.id, responder.userId);
 
     responder.send(JSON.stringify({
@@ -127,7 +152,6 @@ async function handleResponderResponse(ws, msg){
 module.exports = {
   clients,
   alertLocks,
-  subscriptions,
   notifyNearbyUsers,
   assignNearestResponder,
   handleResponderResponse,
