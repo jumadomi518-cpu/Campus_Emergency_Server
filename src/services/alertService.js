@@ -1,3 +1,5 @@
+
+const WebSocket = require("ws");
 const distance = require("../utils/distance");
 const { createAlert, getAlertById, updateAlertStatus, saveValidation, countTrueVotes } = require("../models/alertModel");
 const webpush = require("web-push");
@@ -21,7 +23,7 @@ const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // mete
   try {
     for (const client of clients.values()) {
 
-      if(client.readyState !== client.OPEN) continue;
+      if(client.readyState !== WebSocket.OPEN) continue;
 if(client.userId === alert.user_id) continue;
   //    if(!client.lat || !client.lng) continue;
 
@@ -40,7 +42,7 @@ if(client.userId === alert.user_id) continue;
 
       // Push fallback
       const result = await pool.query(
-        "SELECT * FROM push_subscriptions WHERE user_id = $1",
+        "SELECT * FROM subscriptions WHERE user_id = $1",
         [client.userId]
       );
 
