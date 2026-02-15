@@ -112,7 +112,7 @@ app.post("/api/validate-alert", async (req, res) => {
     await saveValidation(alertId, decoded.user_id, vote);
 
     const trueVotes = await countTrueVotes(alertId);
-    if (trueVotes >= 2) {
+    if (trueVotes >= 1) {
       const alert = await getAlertById(alertId);
       if (alert && alert.status === "PENDING") {
         await updateAlertStatus(alert.id, "ACTIVE");
@@ -213,7 +213,7 @@ wss.on("connection", async ws => {
       try {
         await saveValidation(msg.alertId, ws.userId, msg.vote);
         const trueVotes = await countTrueVotes(msg.alertId);
-        if (trueVotes >= 2) {
+        if (trueVotes >= 1) {
           const alert = await getAlertById(msg.alertId);
           if (alert && alert.status === "PENDING") {
             await updateAlertStatus(alert.id, "ACTIVE");
