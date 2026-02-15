@@ -22,11 +22,11 @@ const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // mete
     for (const client of clients.values()) {
 
       if(client.readyState !== client.OPEN) continue;
-      if(client.role !== "user" || client.userId === alert.user_id) continue;
-      if(!client.lat || !client.lng) continue;
+if(client.userId === alert.user_id) continue;
+  //    if(!client.lat || !client.lng) continue;
 
-      const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
-      if(d > DISTANCE_THRESHOLD) continue;
+    //  const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
+      //if(d > DISTANCE_THRESHOLD) continue;
 
       // WebSocket notification
       client.send(JSON.stringify({
