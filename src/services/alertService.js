@@ -34,6 +34,8 @@ if(client.userId === alert.user_id) continue;
       client.send(JSON.stringify({
         type: "VALIDATE_ALERT",
         alertId: alert.id,
+        name: alert.ws.user.name,
+        phone: alert.ws.user.phone,
         message: alert.message,
         latitude: alert.latitude,
         longitude: alert.longitude,
@@ -64,7 +66,7 @@ if(client.userId === alert.user_id) continue;
         } catch (err) {
           if (err.statusCode === 410 || err.statusCode === 404) {
             await pool.query(
-              "DELETE FROM push_subscriptions WHERE endpoint = $1",
+              "DELETE FROM subscriptions WHERE endpoint = $1",
               [sub.endpoint]
             );
           }
