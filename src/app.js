@@ -186,12 +186,40 @@ wss.on("connection", async ws => {
       }
     }
 
-    // LOCATION UPDATE
-    if (msg.type === "LOCATION_UPDATE") {
-      ws.lat = msg.latitude;
-      ws.lng = msg.longitude;
-      return;
+   // LOCATION UPDATE
+if (msg.type === "LOCATION_UPDATE") {
+  ws.lat = msg.latitude;
+  ws.lng = msg.longitude;
+
+  // forwards location to victim
+  if (ws.role !== "user") {
+    try {
+      const result = await pool.query(
+        "SELECT * FROM alerts WHERE assigned_to=$1 AND status='IN_PROGRESS'",
+        [ws.userId]
+      );
+
+      if (result.rows.length > 0) {
+        const alert = result.rows[0];
+        const victimWs = clients.get(alert.user_id);
+
+        if (victimWs && victimWs.readyState === WebSocket.OPEN) {
+          victimWs.send(JSON.stringify({
+            type: "RESPONDER_LOCATION_UPDATE",
+            alertId: alert.id,
+            responderId: ws.userId,
+            latitude: ws.lat,
+            longitude: ws.lng
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Forward location error:", err);
     }
+  }
+
+  return;
+}
 
     // EMERGENCY CREATION
     if (ws.role === "user" && msg.type === "EMERGENCY") {

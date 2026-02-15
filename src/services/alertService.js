@@ -43,6 +43,7 @@ if(client.userId === alert.user_id) continue;
       }));
 
       // Push fallback
+if(!clients.has(client.userId)) {
       const result = await pool.query(
         "SELECT * FROM subscriptions WHERE user_id = $1",
         [client.userId]
@@ -77,7 +78,7 @@ if(client.userId === alert.user_id) continue;
     console.error("notifyNearbyUsers error:", err);
   }
 }
-
+}
 // ASSIGN NEAREST RESPONDER
 function assignNearestResponder(alert){
   try {
@@ -88,7 +89,7 @@ function assignNearestResponder(alert){
 
     const availableResponders = [];
     clients.forEach(ws=>{
-      if(ws.readyState !== ws.OPEN) return;
+      if(ws.readyState !== WebSocket.OPEN) return;
       if(!roles.includes(ws.role)) return;
       if(!ws.lat || !ws.lng) return;
 
@@ -137,7 +138,7 @@ async function handleResponderResponse(ws, msg){
       await updateAlertStatus(alert.id, "IN_PROGRESS", ws.userId);
 
       const victimWs = clients.get(alert.user_id);
-      if(victimWs && victimWs.readyState === victimWs.OPEN){
+      if(victimWs && victimWs.readyState === WebSocket.OPEN){
         victimWs.send(JSON.stringify({
           type: "RESPONDER_ACCEPTED",
           alertId: alert.id,
