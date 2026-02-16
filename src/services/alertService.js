@@ -15,7 +15,7 @@ const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
 
 // CONFIG
-const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
+const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "5000"); // meters
 
 // NOTIFY NEARBY USERS
 async function notifyNearbyUsers(alert) {
@@ -28,7 +28,7 @@ async function notifyNearbyUsers(alert) {
       // Calculate distance between alert and user
       const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
       if (d > DISTANCE_THRESHOLD) continue; // skip users too far away
-
+      console.log(`Checking client ${client.userId}, distance to alert: ${d}`);
       // Send WebSocket notification
       client.send(JSON.stringify({
         type: "VALIDATE_ALERT",
