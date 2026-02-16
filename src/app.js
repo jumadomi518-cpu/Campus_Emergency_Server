@@ -241,7 +241,7 @@ if (msg.type === "LOCATION_UPDATE") {
       try {
         await saveValidation(msg.alertId, ws.userId, msg.vote);
         const trueVotes = await countTrueVotes(msg.alertId);
-        if (trueVotes >= 1) {
+        if (trueVotes >= 0) {
           const alert = await getAlertById(msg.alertId);
           if (alert && alert.status === "PENDING") {
             await updateAlertStatus(alert.id, "ACTIVE");

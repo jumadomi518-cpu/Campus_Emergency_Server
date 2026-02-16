@@ -42,7 +42,7 @@ async function notifyNearbyUsers(alert) {
         distance: d
       }));
 
-      // Push fallback (optional)
+      // Push fallback
       const result = await pool.query(
         "SELECT * FROM subscriptions WHERE user_id = $1",
         [client.userId]
