@@ -232,6 +232,7 @@ if (msg.type === "LOCATION_UPDATE") {
           msg.emergencyType
         );
         notifyNearbyUsers(alert);
+       console.log("Emergency received");
       } catch(err){ console.error("Create alert error:", err); }
       return;
     }
