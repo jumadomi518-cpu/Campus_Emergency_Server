@@ -141,6 +141,7 @@ wss.on("connection", async ws => {
 
     // AUTH
     if (!ws.isAuthenticated) {
+    console.log("Incoming message before auth:", msg);
       if (!msg.token) return ws.close();
       try {
         const decoded = jwt.verify(msg.token, process.env.SECRET);
