@@ -24,6 +24,7 @@ async function notifyNearbyUsers(alert) {
       if (client.readyState !== WebSocket.OPEN) continue;
       if (client.userId === alert.user_id) continue; // don't notify the sender
       if (!client.lat || !client.lng) continue; // skip if location unknown
+      if (client.role !== "user") continue;
 
       // Calculate distance between alert and user
       const d = distance(alert.latitude, alert.longitude, client.lat, client.lng);
@@ -33,8 +34,6 @@ async function notifyNearbyUsers(alert) {
       client.send(JSON.stringify({
         type: "VALIDATE_ALERT",
         alertId: alert.id,
-        name: client.user?.name || "Unknown",
-        phone: client.user?.phone || "Unknown",
         message: alert.message,
         latitude: alert.latitude,
         longitude: alert.longitude,
