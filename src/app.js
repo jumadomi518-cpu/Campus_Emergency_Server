@@ -238,6 +238,7 @@ if (msg.type === "LOCATION_UPDATE") {
 
     // VALIDATION RESPONSE
     if (msg.type === "VALIDATE_RESPONSE") {
+    console.log("Validate response received");
       try {
         await saveValidation(msg.alertId, ws.userId, msg.vote);
         const trueVotes = await countTrueVotes(msg.alertId);

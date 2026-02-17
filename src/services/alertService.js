@@ -77,6 +77,7 @@ async function notifyNearbyUsers(alert) {
 function assignNearestResponder(alert){
   try {
     // Define roles based on emergency type
+    console.log("Notify nearby responders called");
     let roles = [];
     if(alert.emergency_type === "ACCIDENT") roles = ["hospital","police"];
     if(alert.emergency_type === "FIRE") roles = ["firefighter"];
@@ -118,7 +119,7 @@ function assignNearestResponder(alert){
         lng: responder.lng
       }
     }));
-
+  console.log("Respondee assignment completed");
   } catch(err){ console.error("assignNearestResponder error:", err); }
 }
 
