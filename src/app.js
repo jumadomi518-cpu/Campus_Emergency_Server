@@ -223,20 +223,24 @@ if (msg.type === "LOCATION_UPDATE") {
 }
 
     // EMERGENCY CREATION
-    if (ws.role === "user" && msg.type === "EMERGENCY") {
-      try {
-        const alert = await createAlert(
-          ws.user,
-          msg.message,
-          msg.latitude,
-          msg.longitude,
-          msg.emergencyType
-        );
-        notifyNearbyUsers(alert);
-       console.log("Emergency received");
-      } catch(err){ console.error("Create alert error:", err); }
-      return;
-    }
+    if(ws.role === "user" && msg.type === "EMERGENCY"){
+  console.log("EMERGENCY received:", msg);
+
+  // Validate coordinates
+  if(msg.latitude == null || msg.longitude == null){
+    console.log("Invalid coordinates for EMERGENCY, ignoring.");
+    return;
+  }
+
+  createAlert(ws.user, msg.message, msg.latitude, msg.longitude, msg.emergencyType)
+    .then(alert => {
+      console.log("Alert created:", alert.id);
+      notifyNearbyUsers(alert);
+      // Try assigning responder immediately if any ready
+      assignNearestResponder(alert);
+    })
+    .catch(err => console.error("Error creating alert:", err));
+}
 
     // VALIDATION RESPONSE
     if (msg.type === "VALIDATE_RESPONSE") {
