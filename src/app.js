@@ -191,6 +191,7 @@ wss.on("connection", async ws => {
 
 if (msg.type === "SELECTED_ROUTE") {
  console.log("Route selected has been received");
+  const alert = await getAlertById(msg.alertId);
   const victimWs = clients.get(alert.user_id);
  if (victimWs.readyState !== WebSocket.OPEN) return;
  victimWs.send(JSON.stringify(msg));
