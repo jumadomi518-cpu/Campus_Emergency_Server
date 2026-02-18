@@ -15,7 +15,7 @@ const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
 
 // CONFIG
-const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "5000"); // meters
+const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
 
 // NOTIFY NEARBY USERS
 async function notifyNearbyUsers(alert) {
@@ -109,10 +109,13 @@ function assignNearestResponder(alert){
     responder.send(JSON.stringify({
       type: "EMERGENCY_ASSIGNMENT",
       alertId: alert.id,
+      name: alert?.name,
+      phone: alert?.phone,
       message: alert.message,
       latitude: alert.latitude,
       longitude: alert.longitude,
       emergencyType: alert.emergency_type,
+
       responder: {
         id: responder.userId,
         lat: responder.lat,
