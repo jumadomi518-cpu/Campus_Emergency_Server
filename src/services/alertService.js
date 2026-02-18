@@ -15,7 +15,7 @@ const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
 
 // CONFIG
-const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
+const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "10000"); // meters
 
 // NOTIFY NEARBY USERS
 async function notifyNearbyUsers(alert) {
