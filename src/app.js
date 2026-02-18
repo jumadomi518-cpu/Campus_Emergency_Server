@@ -170,6 +170,8 @@ wss.on("connection", async ws => {
                 type: "EMERGENCY_ASSIGNMENT",
                 alertId: alert.id,
                 message: alert.message,
+                name: alert?.name,
+                phone: alert?.phone,
                 latitude: alert.latitude || 0,
                 longitude: alert.longitude || 0,
                 emergencyType: alert.emergency_type,
