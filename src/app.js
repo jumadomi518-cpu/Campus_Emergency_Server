@@ -193,6 +193,10 @@ if (msg.type === "SELECTED_ROUTE") {
  console.log("Route selected has been received");
   const alert = await getAlertById(msg.alertId);
   const victimWs = clients.get(alert.user_id);
+    if (!victimWs) {
+    console.log("Alert creator is not connected. Route not sent.");
+    return;
+  }
  if (victimWs.readyState !== WebSocket.OPEN) return;
  victimWs.send(JSON.stringify(msg));
 
