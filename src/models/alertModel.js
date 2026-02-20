@@ -1,9 +1,6 @@
-const { Pool } = require("pg");
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+
+const pool = require("./pool.js");
 
 // Create a new alert
 async function createAlert(user, message, latitude, longitude, emergencyType) {

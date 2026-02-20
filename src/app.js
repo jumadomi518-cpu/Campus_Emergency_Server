@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
-const { Pool } = require("pg");
 const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
@@ -21,10 +20,7 @@ const {
 } = require("./services/alertService");
 
 // DATABASE
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const pool = require("./models/pool.js");
 
 // EXPRESS
 const app = express();
@@ -208,6 +204,8 @@ if (msg.type === "SELECTED_ROUTE") {
 if (msg.type === "LOCATION_UPDATE") {
   ws.lat = msg.latitude;
   ws.lng = msg.longitude;
+
+  await pool.query("UPDATE users SET latitude = $1, longitude = $2 WHERE user_id = $3", [msg.latitude, msg.longitude, ws.user_id]);
 
   // forwards location to victim
   if (ws.role !== "user") {
