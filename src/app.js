@@ -205,7 +205,7 @@ if (msg.type === "LOCATION_UPDATE") {
   ws.lat = msg.latitude;
   ws.lng = msg.longitude;
 
-  await pool.query("UPDATE users SET latitude = $1, longitude = $2 WHERE user_id = $3", [msg.latitude, msg.longitude, ws.user_id]);
+  await pool.query("UPDATE users SET latitude = $1, longitude = $2 WHERE user_id = $3", [msg.latitude, msg.longitude, ws.userId]);
 
   // forwards location to victim
   if (ws.role !== "user") {
