@@ -38,7 +38,7 @@ async function notifyNearbyUsers(alert) {
 
 
       // ONLINE user (WebSocket)
-      const client = clients.get(user.id);
+      const client = clients.get(user.user_id);
       if (client && client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
           type: "VALIDATE_ALERT",
