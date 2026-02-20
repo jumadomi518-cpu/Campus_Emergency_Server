@@ -34,7 +34,7 @@ async function notifyNearbyUsers(alert) {
 
       if (d > DISTANCE_THRESHOLD) continue;
 
-      console.log(`Checking user ${user.id}, distance: ${d}`);
+      console.log(`Checking user ${user.user_id}, distance: ${d}`);
 
 
       // ONLINE user (WebSocket)
@@ -178,9 +178,19 @@ async function assignNearestResponder(alert) {
     let responder = availableResponders.length > 0 ? availableResponders[0].ws : null;
 
     if (!responder) {
-      const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
-      const query = `SELECT user_id, latitude, longitude FROM users WHERE role IN (${placeholders})`;
-      const { rows: offlineResponders } = await pool.query(query, roles);
+      if (roles.length > 0) {
+  const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
+  const query = `SELECT user_id, latitude, longitude FROM users WHERE role IN (${placeholders})`;
+  const { rows: offlineResponders } = await pool.query(query, roles);
+
+  if (offlineResponders.length === 0) {
+    console.log("No offline responders found in DB");
+    return;
+  }
+} else {
+  console.log("No roles for this emergency type, skipping DB query");
+  return;
+}
 
       if (offlineResponders.length === 0) {
         console.log("No offline responders found in DB");
