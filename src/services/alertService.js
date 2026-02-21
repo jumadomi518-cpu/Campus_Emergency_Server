@@ -179,39 +179,43 @@ async function assignNearestResponder(alert, rejectedUser) {
     let responder = availableResponders.length > 0 ? availableResponders[0].ws : null;
 
     if (!responder) {
-      if (roles.length > 0) {
+        if (roles.length === 0) {
+    console.log("No roles for this emergency type");
+    return;
+  }
+
   const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
-  const query = `SELECT user_id, latitude, longitude FROM users WHERE role IN (${placeholders})`;
-  const { rows: offlineResponders } = await pool.query(query, roles);
+
+  const query = `
+    SELECT user_id, latitude, longitude 
+    FROM users 
+    WHERE role IN (${placeholders})
+    AND user_id != $${roles.length + 1}
+  `;
+
+  const { rows: offlineResponders } =
+    await pool.query(query, [...roles, rejectedUser]);
 
   if (offlineResponders.length === 0) {
     console.log("No offline responders found in DB");
     return;
   }
-} else {
-  console.log("No roles for this emergency type, skipping DB query");
-  return;
-}
 
-      if (offlineResponders.length === 0) {
-        console.log("No offline responders found in DB");
-        return;
-      }
+  // Calculate distance
+  offlineResponders.forEach(user => {
+    const d = distance(alert.latitude, alert.longitude, user.latitude, user.longitude);
+    availableResponders.push({ user, distance: d });
+  });
 
-      // Calculate distance and pick nearest
-      offlineResponders.forEach(user => {
-        const d = distance(alert.latitude, alert.longitude, user.latitude, user.longitude);
-        availableResponders.push({ user, distance: d });
-      });
+  availableResponders.sort((a, b) => a.distance - b.distance);
 
-      availableResponders.sort((a, b) => a.distance - b.distance);
-      const nearestOffline = availableResponders[0].user;
+  const nearestOffline = availableResponders[0].user;
 
-      // Lock the alert atomically
-      if (alertLocks.has(alert.id)) return;
-      alertLocks.set(alert.id, nearestOffline.user_id);
+  if (alertLocks.has(alert.id)) return;
 
-      responder = nearestOffline;
+  alertLocks.set(alert.id, nearestOffline.user_id);
+
+  responder = nearestOffline;
 
       // Send Push Notification to offline responder
       const result = await pool.query(
