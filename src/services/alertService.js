@@ -143,7 +143,7 @@ function assignNearestResponder(alert){
 }*/
 
 
-async function assignNearestResponder(alert) {
+async function assignNearestResponder(alert, rejectedUser) {
   try {
     console.log("Assign nearest responder called");
 
@@ -159,7 +159,7 @@ async function assignNearestResponder(alert) {
       if (ws.readyState !== WebSocket.OPEN) return;
       if (!roles.includes(ws.role)) return;
       if (!ws.lat || !ws.lng) return;
-
+      if(ws.userId === rejectedUser) continue;
       // Skip if someone else already locked this alert
       const locked = alertLocks.get(alert.id);
       if (locked && locked === ws.userId) return;
@@ -301,9 +301,8 @@ async function handleResponderResponse(ws, msg){
 
     } else {
       // Reject → release lock and assign next responder
-      if (msg.userId === ws.userId) continue;
       alertLocks.delete(alert.id);
-      assignNearestResponder(alert);
+      assignNearestResponder(alert, msg.userId);
     }
   } catch(err){ console.error("handleResponderResponse error:", err); }
 }
