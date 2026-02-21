@@ -146,7 +146,7 @@ function assignNearestResponder(alert){
 async function assignNearestResponder(alert, rejectedUser) {
   try {
     console.log("Assign nearest responder called");
-
+    console.log(rejectedUser);
     // Determine roles based on emergency type
     let roles = [];
     if (alert.emergency_type === "ACCIDENT") roles = ["hospital", "police"];
@@ -284,6 +284,7 @@ async function assignNearestResponder(alert, rejectedUser) {
 // HANDLE RESPONDER RESPONSE
 async function handleResponderResponse(ws, msg){
   try {
+    console.log(msg.userId);
     const alert = await getAlertById(msg.alertId);
     if(!alert) return;
 
