@@ -40,6 +40,7 @@ async function notifyNearbyUsers(alert) {
       // ONLINE user (WebSocket)
       const client = clients.get(user.user_id);
       if (client && client.readyState === WebSocket.OPEN) {
+       console.log("Validate alert send");
         client.send(JSON.stringify({
           type: "VALIDATE_ALERT",
           alertId: alert.id,
@@ -300,6 +301,7 @@ async function handleResponderResponse(ws, msg){
 
     } else {
       // Reject → release lock and assign next responder
+      if (msg.userId === ws.userId) continue;
       alertLocks.delete(alert.id);
       assignNearestResponder(alert);
     }
