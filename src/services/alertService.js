@@ -159,7 +159,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       if (ws.readyState !== WebSocket.OPEN) return;
       if (!roles.includes(ws.role)) return;
       if (!ws.lat || !ws.lng) return;
-      if(ws.userId === rejectedUser) continue;
+      if(ws.userId === rejectedUser) return;
       // Skip if someone else already locked this alert
       const locked = alertLocks.get(alert.id);
       if (locked && locked === ws.userId) return;
