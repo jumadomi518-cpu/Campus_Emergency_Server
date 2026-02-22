@@ -109,7 +109,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       const locked = alertLocks.get(alert.id);
       console.log("locked " + locked);
       if (locked && locked === ws.userId) return;
-      const isHandlingAnotherAlert = [...alertLocks.values()].includes(responder.userId);
+      const isHandlingAnotherAlert = [...alertLocks.values()].includes(ws.userId);
      if (isHandlingAnotherAlert) return;
       const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
       availableResponders.push({ ws, distance: d });
@@ -124,7 +124,9 @@ async function assignNearestResponder(alert, rejectedUser) {
 
     // Pick the nearest online responder
     let responder = availableResponders.length > 0 ? availableResponders[0].ws : null;
-
+    if (responder && !alertLocks.has(alert.id)) {
+       alertLocks.set(alert.id, responder.userId);
+    }
     // If no online responder, check offline responders
     if (!responder) {
       if (roles.length === 0) {
