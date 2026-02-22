@@ -189,7 +189,7 @@ if (msg.type === "SELECTED_ROUTE") {
  console.log("Route selected has been received");
   const alert = await getAlertById(msg.alertId);
   const victimWs = clients.get(alert.user_id);
-  await pool.query("UPDATE alerts SET route_path = $1", [msg.routeCoordinates]);
+  await pool.query("UPDATE alerts SET route_path = $1 WHERE id = $2", [JSON.stringify(msg.routeCoordinates), msg.alertId]);
    console.log(msg.routeCoordinates);
 
     if (!victimWs) {
