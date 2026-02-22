@@ -102,6 +102,9 @@ async function assignNearestResponder(alert, rejectedUser) {
 
     // Loop through online WebSocket clients
     clients.forEach(ws => {
+      const { rows } = await pool.query("SELECT status FROM alerts WHERE assigned_to = $1", [ws.userId]);
+      const status = rows[0].status || null;
+      if (status === "IN_PROGRESS") return;
       if (ws.readyState !== WebSocket.OPEN) return;
       if (!roles.includes(ws.role)) return;
       if (!ws.lat || !ws.lng) return;
