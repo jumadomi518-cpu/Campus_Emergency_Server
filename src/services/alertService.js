@@ -99,17 +99,17 @@ async function assignNearestResponder(alert, rejectedUser) {
     if (alert.emergency_type === "FIRE") roles = ["firefighter"];
 
     const availableResponders = [];
-
+    const { rows } = await pool.query("SELECT status FROM alerts");
+    let i = 0;
     // Loop through online WebSocket clients
     clients.forEach(ws => {
-      const { rows } = await pool.query("SELECT status FROM alerts WHERE assigned_to = $1", [ws.userId]);
-      const status = rows[0].status || null;
+      const status = rows[i].status || null;
       if (status === "IN_PROGRESS") return;
       if (ws.readyState !== WebSocket.OPEN) return;
       if (!roles.includes(ws.role)) return;
       if (!ws.lat || !ws.lng) return;
       if (String(ws.userId) === String(rejectedUser)) return;
-
+      i++;
       // Skip if someone else already locked this alert
       const locked = alertLocks.get(alert.id);
       if (locked && locked === ws.userId) return;
