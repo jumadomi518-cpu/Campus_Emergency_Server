@@ -9,12 +9,21 @@ const pool = require("../models/pool.js");
 // IN-MEMORY MAPS
 const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
+const responderLocks = new Map(); // responderId
+
+
+
 
 // CONFIG
 const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "10000"); // meters
 
 // NOTIFY NEARBY USERS
 async function notifyNearbyUsers(alert) {
+
+ if (alertLocks.has(alert.id)) {
+  console.log("Alert already locked");
+  return;
+}
   try {
     const { rows: users } = await pool.query(
       "SELECT user_id, latitude, longitude FROM users"
@@ -110,6 +119,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       console.log("locked " + locked);
       if (locked) return;
       const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
+      if (responderLocks.has(ws.userId)) return;
       availableResponders.push({ ws, distance: d });
     });
 
@@ -125,6 +135,7 @@ async function assignNearestResponder(alert, rejectedUser) {
 
     if (responder) {
     alertLocks.set(alert.id, responder.userId);
+    responderLocks.set(responder.userId, alert.id);
      }
 
 
@@ -248,6 +259,7 @@ async function handleResponderResponse(ws, msg){
     } else {
       // Reject → release lock and assign next responder
       alertLocks.delete(alert.id);
+      responderLocks.delete(responder.userId);
       assignNearestResponder(alert, msg.userId);
     }
   } catch(err){ console.error("handleResponderResponse error:", err); }
