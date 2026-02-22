@@ -123,6 +123,11 @@ async function assignNearestResponder(alert, rejectedUser) {
     // Pick the nearest online responder
     let responder = availableResponders.length > 0 ? availableResponders[0].ws : null;
 
+    if (responder) {
+    alertLocks.set(alert.id, responder.userId);
+     }
+
+
     // If no online responder, check offline responders
     if (!responder) {
       if (roles.length === 0) {
