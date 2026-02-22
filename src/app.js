@@ -6,6 +6,8 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const webpush = require("web-push");
 
+
+
 const {
   clients,
   alertLocks,
@@ -21,6 +23,8 @@ const {
 
 // DATABASE
 const pool = require("./models/pool.js");
+const distance = require("./utils/distance.js");
+
 
 // EXPRESS
 const app = express();
@@ -187,6 +191,61 @@ wss.on("connection", async ws => {
 
 if (msg.type === "SELECTED_ROUTE") {
  console.log("Route selected has been received");
+
+
+
+const { rows } = await pool.query(
+  "SELECT user_id, role, latitude, longitude FROM users"
+);
+
+const subs = (await pool.query(
+  "SELECT * FROM subscriptions WHERE role = $1",
+  ["traffic"]
+)).rows;
+
+const subsMap = new Map();
+subs.forEach((sub) => {
+  subsMap.set(sub.user_id, sub);
+});
+
+for (const coords of msg.coordsFromResponder) {
+  for (const row of rows) {
+
+    const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
+
+    if (dis < 10 && row.role === "traffic") {
+      const sub = subsMap.get(row.user_id);
+
+      if (!sub) continue;
+
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
+      };
+
+      const payload = JSON.stringify({
+        title: "The Route Will be used by Emergency Responders",
+        body: "Tap to view route.",
+        url: `https://emergency-system-frontend.vercel.app/pages/traffic.html?alertId=${msg.alertId}`
+      });
+
+      try {
+        await webpush.sendNotification(pushSubscription, payload);
+      } catch (err) {
+        console.error("Push error:", err.message);
+      }
+    }
+
+  }
+}
+
+
+
+
+
   const alert = await getAlertById(msg.alertId);
   const victimWs = clients.get(alert.user_id);
   await pool.query("UPDATE alerts SET route_path = $1 WHERE id = $2", [JSON.stringify(msg.coordsFromResponder), msg.alertId]);
