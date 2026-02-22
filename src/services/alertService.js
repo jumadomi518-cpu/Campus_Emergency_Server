@@ -107,6 +107,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       if (String(ws.userId) === String(rejectedUser)) return;
       // Skip if someone else already locked this alert
       const locked = alertLocks.get(alert.id);
+      console.log(locked);
       if (locked && locked === ws.userId) return;
       const isHandlingAnotherAlert = [...alertLocks.values()].includes(ws.userId);
      if (isHandlingAnotherAlert) return;
