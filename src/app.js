@@ -199,9 +199,7 @@ const { rows } = await pool.query(
 );
 
 const subs = (await pool.query(
-  "SELECT * FROM subscriptions WHERE role = $1",
-  ["traffic"]
-)).rows;
+  "SELECT * FROM subscriptions")).rows;
 
 const subsMap = new Map();
 subs.forEach((sub) => {
