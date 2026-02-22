@@ -101,8 +101,6 @@ async function assignNearestResponder(alert, rejectedUser) {
     const availableResponders = [];
     // Loop through online WebSocket clients
     clients.forEach(ws => {
-      const status = rows[i].status || null;
-      if (status === "IN_PROGRESS") return;
       if (ws.readyState !== WebSocket.OPEN) return;
       if (!roles.includes(ws.role)) return;
       if (!ws.lat || !ws.lng) return;
