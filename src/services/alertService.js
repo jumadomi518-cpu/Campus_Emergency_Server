@@ -97,6 +97,26 @@ async function notifyNearbyUsers(alert) {
   }
 }
 
+//handle waiting time
+ async function  handleWaitingTime(alertId, time) {
+try {
+ const { rows } = await pool.query("SELECT assigned_to FROM alerts WHERE id = $1", [alertId]);
+ const assigned = rows[0].assigned_to;
+ const client = clients.get(assigned);
+
+if (client && client.readyState === WebSocket.OPEN) {
+  client.send(JSON.stringify({ type: "WAITING_TIME", time: time}));
+   console.log("Waiting time send to the responder");
+ }
+
+} catch (error) {
+
+console.log("An error occured while handling waiting time", error);
+}
+   }
+
+
+
 async function assignNearestResponder(alert, rejectedUser) {
   try {
     console.log("Assign nearest responder called");
@@ -274,5 +294,6 @@ module.exports = {
   getAlertById,
   updateAlertStatus,
   saveValidation,
-  countTrueVotes
+  countTrueVotes,
+  handleWaitingTime
 };

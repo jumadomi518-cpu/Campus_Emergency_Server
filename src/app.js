@@ -19,6 +19,7 @@ const {
   getAlertById,
   updateAlertStatus,
   saveValidation,
+  handleWaitingTime,
   countTrueVotes
 } = require("./services/alertService");
 
@@ -212,7 +213,7 @@ for (const coords of msg.coordsFromResponder) {
 
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
 
-    if (dis < 1000 && row.role === "traffic") {
+    if (dis < 20 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
       if (!sub) continue;
@@ -334,6 +335,12 @@ if (msg.type === "LOCATION_UPDATE") {
       } catch(err){ console.error("Validation response error:", err); }
       return;
     }
+
+   if (msg.type === "WAITING_TIME") {
+   console.log("Waiting time received");
+   handleWaitingTime(msg.alertId, msg.time);
+     }
+
 
     // RESPONDER RESPONSE
     if (msg.type === "RESPONDER_RESPONSE") {
