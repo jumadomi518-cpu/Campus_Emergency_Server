@@ -135,7 +135,6 @@ async function assignNearestResponder(alert, rejectedUser) {
 
     if (responder) {
     alertLocks.set(alert.id, responder.userId);
-    responderLocks.set(responder.userId, alert.id);
      }
 
 
@@ -246,7 +245,7 @@ async function handleResponderResponse(ws, msg){
 
     if(msg.accept){
       await updateAlertStatus(alert.id, "IN_PROGRESS", ws.userId);
-
+      responderLocks.set(ws.userId, alert.id);
       const victimWs = clients.get(alert.user_id);
       if(victimWs && victimWs.readyState === WebSocket.OPEN){
         victimWs.send(JSON.stringify({
@@ -268,6 +267,7 @@ async function handleResponderResponse(ws, msg){
 module.exports = {
   clients,
   alertLocks,
+  responderLocks,
   notifyNearbyUsers,
   assignNearestResponder,
   handleResponderResponse,

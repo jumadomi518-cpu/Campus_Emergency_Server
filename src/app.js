@@ -11,6 +11,7 @@ const webpush = require("web-push");
 const {
   clients,
   alertLocks,
+  responderLocks,
   notifyNearbyUsers,
   assignNearestResponder,
   handleResponderResponse,
@@ -211,7 +212,7 @@ for (const coords of msg.coordsFromResponder) {
 
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
 
-    if (dis < 10 && row.role === "traffic") {
+    if (dis < 50 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
       if (!sub) continue;
@@ -225,13 +226,14 @@ for (const coords of msg.coordsFromResponder) {
       };
 
       const payload = JSON.stringify({
-        title: "The Route Will be used by Emergency Responders",
+        title: "This Route Will be used by Emergency Responders",
         body: "Tap to view route.",
         url: `https://emergency-system-frontend.vercel.app/pages/traffic.html?alertId=${msg.alertId}`
       });
 
       try {
         await webpush.sendNotification(pushSubscription, payload);
+        console.log("Push subscription send to traffic whithin the route");
       } catch (err) {
         console.error("Push error:", err.message);
       }
