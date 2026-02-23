@@ -245,7 +245,7 @@ async function handleResponderResponse(ws, msg){
 
     if(msg.accept){
       await updateAlertStatus(alert.id, "IN_PROGRESS", ws.userId);
-      responderLocks.set(ws.userId, alert.id);
+//      responderLocks.set(ws.userId, alert.id);
       const victimWs = clients.get(alert.user_id);
       if(victimWs && victimWs.readyState === WebSocket.OPEN){
         victimWs.send(JSON.stringify({
