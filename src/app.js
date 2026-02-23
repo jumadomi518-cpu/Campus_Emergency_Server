@@ -11,7 +11,7 @@ const webpush = require("web-push");
 const {
   clients,
   alertLocks,
-  responderLocks,
+//  responderLocks,
   notifyNearbyUsers,
   assignNearestResponder,
   handleResponderResponse,
