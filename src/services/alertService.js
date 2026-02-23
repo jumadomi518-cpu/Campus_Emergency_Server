@@ -115,7 +115,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       if (!ws.lat || !ws.lng) return;
       if (String(ws.userId) === String(rejectedUser)) return;
       // Skip if someone else already locked this alert
-      const locked = alertLocks.get(alert.id);
+//      const locked = alertLocks.get(alert.id);
       console.log("locked " + locked);
       if (locked) return;
       const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
