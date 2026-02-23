@@ -54,7 +54,7 @@ webpush.setVapidDetails(
 // HTTP + WEBSOCKET SERVER
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-const notifiedUsers = new Set();
+
 
 
 
@@ -198,7 +198,7 @@ wss.on("connection", async ws => {
 if (msg.type === "SELECTED_ROUTE") {
  console.log("Route selected has been received");
 
-
+const notifiedUsers = new Set();
 
 const { rows } = await pool.query(
   "SELECT user_id, role, latitude, longitude FROM users"
