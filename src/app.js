@@ -337,7 +337,7 @@ if (msg.type === "LOCATION_UPDATE") {
     }
 
    if (msg.type === "WAITING_TIME") {
-   console.log("Waiting time received");
+   console.log("Waiting time received ", msg.alertId, msg.time);
    handleWaitingTime(msg.alertId, msg.time);
      }
 
