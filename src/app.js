@@ -54,6 +54,10 @@ webpush.setVapidDetails(
 // HTTP + WEBSOCKET SERVER
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+const notifiedUsers = new Set();
+
+
+
 
 console.log("Server running on port", process.env.PORT || 3000);
 
@@ -210,13 +214,14 @@ subs.forEach((sub) => {
 
 for (const coords of msg.coordsFromResponder) {
   for (const row of rows) {
-
+    if (notifiedUsers.has(row.user_id)) continue;
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
 
     if (dis < 20 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
       if (!sub) continue;
+      notifiedUsers.add(row.user_id);
 
       const pushSubscription = {
         endpoint: sub.endpoint,
