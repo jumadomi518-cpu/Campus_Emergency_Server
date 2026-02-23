@@ -9,7 +9,7 @@ const pool = require("../models/pool.js");
 // IN-MEMORY MAPS
 const clients = new Map();       // userId ws
 const alertLocks = new Map();    // alertId responderId
-const responderLocks = new Map(); // responderId
+//const responderLocks = new Map(); // responderId
 
 
 
@@ -119,7 +119,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       console.log("locked " + locked);
       if (locked) return;
       const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
-      if (responderLocks.has(ws.userId)) return;
+  //    if (responderLocks.has(ws.userId)) return;
       availableResponders.push({ ws, distance: d });
     });
 
