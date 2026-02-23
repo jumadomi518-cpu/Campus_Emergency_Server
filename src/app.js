@@ -212,7 +212,7 @@ for (const coords of msg.coordsFromResponder) {
 
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
 
-    if (dis < 50 && row.role === "traffic") {
+    if (dis < 1000 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
       if (!sub) continue;
