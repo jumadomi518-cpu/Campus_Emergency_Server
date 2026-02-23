@@ -258,7 +258,6 @@ async function handleResponderResponse(ws, msg){
     } else {
       // Reject → release lock and assign next responder
       alertLocks.delete(alert.id);
-      responderLocks.delete(responder.userId);
       assignNearestResponder(alert, msg.userId);
     }
   } catch(err){ console.error("handleResponderResponse error:", err); }
