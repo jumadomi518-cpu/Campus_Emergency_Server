@@ -135,9 +135,11 @@ app.post("/api/validate-alert", async (req, res) => {
 });
 
 
-app.get("/api/route_path/:id", async (req, res) => {
+app.get("/api/route_path/:id/:traffic", async (req, res) => {
  try {
  const alertId = req.params.id;
+ const trafficId = req.params.traffic;
+ await pool.query("UPDATE alerts SET traffic_id = $1 WHERE id = $2", [trafficId, alertId]);
  const { rows } = await pool.query("SELECT latitude, longitude, route_path FROM alerts WHERE id = $1", [alertId]);
  res.json({ data: rows });
 
@@ -291,24 +293,27 @@ for (const coords of msg.coordsFromResponder) {
 
 
    // LOCATION UPDATE
-if (msg.type === "LOCATION_UPDATE") {
+ if (msg.type === "LOCATION_UPDATE") {
   ws.lat = msg.latitude;
   ws.lng = msg.longitude;
 
-  await pool.query("UPDATE users SET latitude = $1, longitude = $2 WHERE user_id = $3", [msg.latitude, msg.longitude, ws.userId]);
+  await pool.query(
+    "UPDATE users SET latitude = $1, longitude = $2 WHERE user_id = $3",
+    [ws.lat, ws.lng, ws.userId]
+  );
 
-  // forwards location to victim
-  if (ws.role !== "user") {
-    try {
-      const result = await pool.query(
-        "SELECT * FROM alerts WHERE assigned_to=$1 AND status='IN_PROGRESS'",
-        [ws.userId]
-      );
+  try {
+    const result = await pool.query(
+      "SELECT * FROM alerts WHERE assigned_to = $1 AND status = 'IN_PROGRESS'",
+      [ws.userId]
+    );
 
-      if (result.rows.length > 0) {
-        const alert = result.rows[0];
+    if (result.rows.length > 0) {
+      const alert = result.rows[0];
+
+      // Forward to victim if ws is a responder
+      if (ws.role !== "user") {
         const victimWs = clients.get(alert.user_id);
-
         if (victimWs && victimWs.readyState === WebSocket.OPEN) {
           victimWs.send(JSON.stringify({
             type: "RESPONDER_LOCATION_UPDATE",
@@ -319,9 +324,22 @@ if (msg.type === "LOCATION_UPDATE") {
           }));
         }
       }
-    } catch (err) {
-      console.error("Forward location error:", err);
+
+      if (alert.traffic_id) {
+        const trafficWs = clients.get(alert.traffic_id);
+        if (trafficWs && trafficWs.readyState === WebSocket.OPEN) {
+          trafficWs.send(JSON.stringify({
+            type: "RESPONDER_LOCATION_UPDATE",
+            alertId: alert.id,
+            responderId: ws.userId,
+            latitude: ws.lat,
+            longitude: ws.lng
+          }));
+        }
+      }
     }
+  } catch (err) {
+    console.error("Forward location error:", err);
   }
 
   return;
