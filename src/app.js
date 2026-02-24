@@ -44,6 +44,7 @@ const loginRouter = require("./routes/loginRouter.js");
 app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
 
+
 // WEB PUSH
 webpush.setVapidDetails(
   'mailto:' + (process.env.VAPID_EMAIL || 'jumadomi518@mail.com'),
@@ -132,6 +133,20 @@ app.post("/api/validate-alert", async (req, res) => {
     res.status(401).send("Invalid token");
   }
 });
+
+
+app.get("api/:id", (req, res) => {
+ try {
+ const alertId = req.params.id;
+ const { rows } = await pool.query("SELECT latitude, longitude, route_path FROM alerts WHERE id = $1", [alertId]);
+ res.json({ data: rows });
+
+ } catch (error) {
+ console.log("An error occured while handling route coordinates ", error);
+ res.json({ status: error });
+ }
+
+  });
 
 //  WEBSOCKET CONNECTION
 wss.on("connection", async ws => {
