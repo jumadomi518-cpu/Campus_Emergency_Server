@@ -231,7 +231,7 @@ for (const coords of msg.coordsFromResponder) {
   for (const row of rows) {
     if (notifiedUsers.has(row.user_id)) continue;
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
-    console.log("Traffic distance to alert ", dis);
+    console.log(`Traffic ${row.user_id} distance to alert `, dis);
     if (dis < 100 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
@@ -254,7 +254,7 @@ for (const coords of msg.coordsFromResponder) {
 
       try {
         await webpush.sendNotification(pushSubscription, payload);
-        console.log("Push subscription send to traffic whithin the route");
+        console.log("Push subscription send to traffic " + row.user_id);
       } catch (err) {
 
        console.error("Push error:", err.message);
