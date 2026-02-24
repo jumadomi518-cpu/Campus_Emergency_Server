@@ -241,6 +241,12 @@ for (const coords of msg.coordsFromResponder) {
         await webpush.sendNotification(pushSubscription, payload);
         console.log("Push subscription send to traffic whithin the route");
       } catch (err) {
+       if (err.statusCode === 410 || err.statusCode === 404) {
+            await pool.query(
+              "DELETE FROM subscriptions WHERE endpoint = $1",
+              [sub.endpoint]
+            );
+          }
         console.error("Push error:", err.message);
       }
     }
