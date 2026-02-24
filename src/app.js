@@ -217,7 +217,7 @@ for (const coords of msg.coordsFromResponder) {
     if (notifiedUsers.has(row.user_id)) continue;
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
 
-    if (dis < 20 && row.role === "traffic") {
+    if (dis < 100 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
       if (!sub) continue;

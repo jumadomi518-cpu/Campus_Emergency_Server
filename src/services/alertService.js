@@ -26,13 +26,13 @@ async function notifyNearbyUsers(alert) {
 }
   try {
     const { rows: users } = await pool.query(
-      "SELECT user_id, latitude, longitude FROM users"
+      "SELECT user_id, role, latitude, longitude FROM users"
     );
 
     for (const user of users) {
 
       if (user.user_id === alert.user_id) continue;
-
+      if (user.role !== "user") continue;
       // Calculate distance using DB location
       const d = distance(
         alert.latitude,
