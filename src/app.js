@@ -216,7 +216,7 @@ for (const coords of msg.coordsFromResponder) {
   for (const row of rows) {
     if (notifiedUsers.has(row.user_id)) continue;
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
-
+    console.log("Traffic distance to alert ", dis);
     if (dis < 100 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
