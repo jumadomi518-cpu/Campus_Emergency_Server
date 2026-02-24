@@ -99,6 +99,7 @@ async function notifyNearbyUsers(alert) {
 
 //handle waiting time
  async function  handleWaitingTime(alertId, time) {
+ if (!alertId) return;
 try {
  const { rows } = await pool.query("SELECT assigned_to FROM alerts WHERE id = $1", [alertId]);
  const assigned = rows[0].assigned_to;
