@@ -135,7 +135,7 @@ app.post("/api/validate-alert", async (req, res) => {
 });
 
 
-app.get("api/:id", async (req, res) => {
+app.get("/api/route_path/:id", async (req, res) => {
  try {
  const alertId = req.params.id;
  const { rows } = await pool.query("SELECT latitude, longitude, route_path FROM alerts WHERE id = $1", [alertId]);
