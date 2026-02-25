@@ -215,6 +215,7 @@ async function assignNearestResponder(alert, rejectedUser) {
               "DELETE FROM subscriptions WHERE endpoint = $1",
               [sub.endpoint]
             );
+          console.log("Error ", err);
           } else {
             console.error("Push error:", err);
           }
