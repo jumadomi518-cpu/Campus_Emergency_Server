@@ -210,12 +210,12 @@ async function assignNearestResponder(alert, rejectedUser) {
           }));
           console.log(`Push sent to offline responder ${responder.user_id}`);
         } catch (err) {
+         console.log("Error ", err);
           if (err.statusCode === 410 || err.statusCode === 404) {
             await pool.query(
               "DELETE FROM subscriptions WHERE endpoint = $1",
               [sub.endpoint]
             );
-          console.log("Error ", err);
           } else {
             console.error("Push error:", err);
           }
