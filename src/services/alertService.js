@@ -76,10 +76,9 @@ async function notifyNearbyUsers(alert) {
 
         try {
           await webpush.sendNotification(pushSub, JSON.stringify({
-            alertId: alert.id,
-            message: alert.message,
-            emergencyType: alert.emergency_type,
-            distance: d
+            title: "Mbiu Emergency Alert",
+            body: `An emergency has been triggered ${d} from you, tap to validate`,
+            url: `https://emergency-system-frontend.vercel.app/responder.html?alertId=${alert.id}`
           }));
         } catch (err) {
           if (err.statusCode === 410 || err.statusCode === 404) {
