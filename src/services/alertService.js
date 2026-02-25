@@ -158,7 +158,7 @@ async function assignNearestResponder(alert, rejectedUser) {
     alertLocks.set(alert.id, responder.userId);
      }
 
-
+    console.log("Nearest online responder:", responder?.userId || "none");
     // If no online responder, check offline responders
     if (!responder) {
       if (roles.length === 0) {
@@ -169,7 +169,7 @@ async function assignNearestResponder(alert, rejectedUser) {
       const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
       const query = `SELECT user_id, latitude, longitude FROM users WHERE role IN (${placeholders})`;
       const { rows: offlineResponders } = await pool.query(query, roles);
-
+     console.log("Offline block called ", offlineResponders);
       if (offlineResponders.length === 0) {
         console.log("No offline responders found in DB");
         return;
