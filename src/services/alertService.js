@@ -205,14 +205,8 @@ async function assignNearestResponder(alert, rejectedUser) {
         try {
           await webpush.sendNotification(pushSub, JSON.stringify({
             title: "Emergency Alert",
-            body: `New ${alert.emergency_type} alert nearby: ${alert.message}`,
-            data: {
-              url: `https://emergency-system-frontend.vercel.app/login?redirect=/responder.html?alertId=${alert.id}`,
-              alertId: alert.id,
-              emergencyType: alert.emergency_type,
-              latitude: alert.latitude,
-              longitude: alert.longitude
-            }
+            body: `New ${alert.emergency_type} has been triggered: ${alert.message}`,
+            url: `https://emergency-system-frontend.vercel.app/responder.html?alertId=${alert.id}`
           }));
           console.log(`Push sent to offline responder ${responder.user_id}`);
         } catch (err) {
