@@ -195,7 +195,7 @@ async function assignNearestResponder(alert, rejectedUser) {
         "SELECT * FROM subscriptions WHERE user_id = $1",
         [responder.user_id]
       );
-
+      console.log("Subscriptions ", result);
       for (const sub of result.rows) {
         const pushSub = {
           endpoint: sub.endpoint,
