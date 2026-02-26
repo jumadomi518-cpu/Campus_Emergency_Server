@@ -116,111 +116,132 @@ console.log("An error occured while handling waiting time", error);
    }
 
 
-async function assignNearestResponder(alert, rejectedUser = null) {
-  try {
-    console.log("Assign nearest responder (Push Only)");
 
-    //Determine roles
+async function assignNearestResponder(alert, rejectedUser) {
+  try {
+    console.log("Assign nearest responder called");
+    console.log(rejectedUser);
+
+    // Determine roles based on emergency type
     let roles = [];
     if (alert.emergency_type === "ACCIDENT") roles = ["hospital", "police"];
     if (alert.emergency_type === "FIRE") roles = ["firefighter"];
 
-    if (roles.length === 0) {
-      console.log("No roles mapped for this emergency type");
-      return;
-    }
-
-    //Get responders from DB (exclude rejected)
-    const placeholders = roles.map((_, i) => `$${i + 1}`).join(",");
-    const roleValues = [...roles];
-
-    let query = `
-      SELECT user_id, latitude, longitude 
-      FROM users 
-      WHERE role IN (${placeholders})
-      AND latitude IS NOT NULL
-      AND longitude IS NOT NULL
-    `;
-
-    if (rejectedUser) {
-      query += ` AND user_id != $${roleValues.length + 1}`;
-      roleValues.push(rejectedUser);
-    }
-
-    const { rows: responders } = await pool.query(query, roleValues);
-
-    if (responders.length === 0) {
-      console.log("No responders found in database");
-      return;
-    }
-
-    // Calculate distances
-    const respondersWithDistance = responders.map(user => ({
-      user,
-      distance: distance(
-        alert.latitude,
-        alert.longitude,
-        user.latitude,
-        user.longitude
-      )
-    }));
-
-    respondersWithDistance.sort((a, b) => a.distance - b.distance);
-
-    const nearest = respondersWithDistance[0].user;
-
-
-    if (alertLocks.has(alert.id)) {
-      console.log("Alert already locked");
-      return;
-    }
-
-    alertLocks.set(alert.id, nearest.user_id);
-    console.log("Alert locked for:", nearest.user_id);
-
-    //Get push subscriptions
-    const { rows: subscriptions } = await pool.query(
-      "SELECT endpoint, p256dh, auth FROM subscriptions WHERE user_id = $1",
-      [nearest.user_id]
-    );
-
-    if (subscriptions.length === 0) {
-      console.log("No push subscriptions found for user:", nearest.user_id);
-      alertLocks.delete(alert.id); // unlock
-      return;
-    }
-
-    //Send Push Notification
-    const payload = JSON.stringify({
-      title: "Emergency Alert",
-      body: `New ${alert.emergency_type}: ${alert.message}`,
-      url: `https://emergency-system-frontend.vercel.app/responder.html?alertId=${alert.id}`
+    const availableResponders = [];
+    // Loop through online WebSocket clients
+    clients.forEach(ws => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      if (!roles.includes(ws.role)) return;
+      if (!ws.lat || !ws.lng) return;
+      if (String(ws.userId) === String(rejectedUser)) return;
+      // Skip if someone else already locked this alert
+      const locked = alertLocks.get(alert.id);
+      console.log("locked " + locked);
+      if (locked) return;
+      const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
+  //    if (responderLocks.has(ws.userId)) return;
+      availableResponders.push({ ws, distance: d });
     });
 
-    for (const sub of subscriptions) {
-      const pushSub = {
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: sub.p256dh,
-          auth: sub.auth
-        }
-      };
+    if (availableResponders.length === 0) {
+      console.log("No online responders found, will attempt push notifications");
+    }
 
-      try {
-        await webpush.sendNotification(pushSub, payload);
-        console.log("Push sent to responder:", nearest.user_id);
-      } catch (err) {
-        console.error("Push error:", err.statusCode, err.body);
+    // Sort responders by distance (nearest first)
+    availableResponders.sort((a, b) => a.distance - b.distance);
 
-        // Remove expired subscriptions
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await pool.query(
-            "DELETE FROM subscriptions WHERE endpoint = $1",
-            [sub.endpoint]
-          );
-          console.log("Deleted expired subscription");
+    // Pick the nearest online responder
+    let responder = availableResponders.length > 0 ? availableResponders[0].ws : null;
+
+    if (responder) {
+    alertLocks.set(alert.id, responder.userId);
+     }
+
+    console.log("Nearest online responder:", responder?.userId || "none");
+    // If no online responder, check offline responders
+    if (!responder) {
+      if (roles.length === 0) {
+        console.log("No roles for this emergency type, skipping DB query");
+        return;
+      }
+
+      const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
+      const query = `SELECT user_id, latitude, longitude FROM users WHERE role IN (${placeholders})`;
+      const { rows: offlineResponders } = await pool.query(query, roles);
+     console.log("Offline block called ", offlineResponders);
+      if (offlineResponders.length === 0) {
+        console.log("No offline responders found in DB");
+        return;
+      }
+
+      // Calculate distance and pick nearest
+      offlineResponders.forEach(user => {
+        const d = distance(alert.latitude, alert.longitude, user.latitude, user.longitude);
+        availableResponders.push({ user, distance: d });
+      });
+
+      availableResponders.sort((a, b) => a.distance - b.distance);
+      const nearestOffline = availableResponders[0].user;
+
+      // Lock the alert atomically
+      if (alertLocks.has(alert.id)) return;
+      alertLocks.set(alert.id, nearestOffline.user_id);
+
+      responder = nearestOffline;
+
+      // Send Push Notification to offline responder
+      const result = await pool.query(
+        "SELECT * FROM subscriptions WHERE user_id = $1",
+        [responder.user_id]
+      );
+      console.log("Subscriptions ", result);
+      for (const sub of result.rows) {
+        const pushSub = {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth }
+        };
+
+        try {
+          await webpush.sendNotification(pushSub, JSON.stringify({
+            title: "Emergency Alert",
+            body: `New ${alert.emergency_type} has been triggered: ${alert.message}`,
+            url: `https://emergency-system-frontend.vercel.app/responder.html?alertId=${alert.id}`
+          }));
+          console.log(`Push sent to offline responder ${responder.user_id}`);
+        } catch (err) {
+         console.log("Error ", err);
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await pool.query(
+              "DELETE FROM subscriptions WHERE endpoint = $1",
+              [sub.endpoint]
+            );
+          } else {
+            console.error("Push error:", err);
+          }
         }
       }
+
+      return;
+    }
+
+    // Online responder → send WebSocket
+    if (responder.readyState === WebSocket.OPEN) {
+      responder.send(JSON.stringify({
+        type: "EMERGENCY_ASSIGNMENT",
+        alertId: alert.id,
+        name: alert?.name,
+        phone: alert?.phone,
+        message: alert.message,
+        latitude: alert.latitude,
+        longitude: alert.longitude,
+        emergencyType: alert.emergency_type,
+        responder: {
+          id: responder.userId,
+          lat: responder.lat,
+          lng: responder.lng
+        }
+      }));
+      console.log(`Emergency assigned to online responder ${responder.userId}`);
     }
 
   } catch (err) {
