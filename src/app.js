@@ -150,12 +150,12 @@ app.get("/api/route_path/:id/:traffic", async (req, res) => {
 
   });
 
-app.get("/api/alert_info/:alettId", async (req, res) => {
+app.get("/api/alert_info/:alertId", async (req, res) => {
  try {
  const { rows } = await pool.query("SELECT * FROM alerts WHERE id = $1", [req.params.alertId]);
   return res.json(rows[0]);
  } catch (error) {
-res.json("Error fetching alert details ", error.message);
+res.json({ error: error.message } );
 console.log("An error occured while feching alert details ", error.message);
 }
   });
