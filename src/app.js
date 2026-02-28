@@ -151,14 +151,22 @@ app.get("/api/route_path/:id/:traffic", async (req, res) => {
   });
 
 app.get("/api/alert_info/:alertId", async (req, res) => {
- try {
- const { rows } = await pool.query("SELECT * FROM alerts WHERE id = $1", [req.params.alertId]);
-  return res.json(rows[0]);
- } catch (error) {
-res.json({ error: error.message } );
-console.log("An error occured while feching alert details ", error.message);
-}
-  });
+  const alertId = parseInt(req.params.alertId, 10);
+  if (isNaN(alertId)) {
+    return res.status(400).json({ error: "Invalid alert ID" });
+  }
+
+  try {
+    const { rows } = await pool.query("SELECT * FROM alerts WHERE id = $1", [alertId]);
+    if (!rows[0]) {
+      return res.status(404).json({ error: "Alert not found" });
+    }
+    return res.json(rows[0]);
+  } catch (error) {
+    console.error("An error occurred while fetching alert details:", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 
 
