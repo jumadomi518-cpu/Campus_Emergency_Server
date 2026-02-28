@@ -150,6 +150,19 @@ app.get("/api/route_path/:id/:traffic", async (req, res) => {
 
   });
 
+app.get("/api/alert_info/:alettId", async (req, res) => {
+ try {
+ const { rows } = await pool.query("SELECT * FROM alerts WHERE id = $1", [req.params.alertId]);
+  return res.json(rows[0]);
+ } catch () {
+res.json("Error ", error.message);
+console.log("An error occured while feching alert details ", error.message);
+}
+  });
+
+
+
+
 //  WEBSOCKET CONNECTION
 wss.on("connection", async ws => {
   ws.isAuthenticated = false;

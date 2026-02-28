@@ -40,7 +40,7 @@ async function saveValidation(alertId, validatorId, vote) {
 // Count True votes for alert
 async function countTrueVotes(alertId) {
   const result = await pool.query(
-    "SELECT COUNT(*) FROM emergency_validation WHERE alert_id=$1 AND vote=TRUE",
+    "SELECT COUNT(*) FROM emergency_validation WHERE alert_id= $1 AND vote = TRUE",
     [alertId]
   );
   return parseInt(result.rows[0].count, 10);
