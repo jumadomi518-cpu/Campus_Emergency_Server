@@ -14,7 +14,7 @@ function authMiddleware(req, res, next) {
     const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.SECRET);
-
+    console.log("Decoded " + decoded);
     req.user = decoded;
 
     next();
@@ -51,7 +51,6 @@ router.post("/", authMiddleware, async (req, res) => {
 
     console.log("Alert created:", alert.id);
 
-    // Notify responders
     await notifyNearbyUsers(alert);
 
     return res.status(201).json({
