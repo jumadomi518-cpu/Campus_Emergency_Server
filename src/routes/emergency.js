@@ -3,7 +3,7 @@ const { Router } = require("express");
 const router = new Router();
 const { createAlert, notifyNearbyUsers } = require("../services/alertService.js");
 
-router.post("/api/emergency", async (req, res) => {
+router.post("/emergency", async (req, res) => {
   try {
     const { latitude, longitude, message, emergencyType } = req.body;
 

@@ -41,7 +41,7 @@ app.use(express.urlencoded({ extended: true }));
 // ROUTES
 const registerRouter = require("./routes/registerRouter.js");
 const loginRouter = require("./routes/loginRouter.js");
-const emergencyRouter = require("./routes/routes/emergency.js");
+const emergencyRouter = require("./routes/emergency.js");
 
 app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
