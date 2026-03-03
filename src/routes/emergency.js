@@ -42,7 +42,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     // Create alert
     const alert = await createAlert(
-      req.user.user_id,
+      req.user,
       message,
       latitude,
       longitude,
