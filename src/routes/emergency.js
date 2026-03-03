@@ -2,12 +2,33 @@
 const { Router } = require("express");
 const router = new Router();
 const { createAlert, notifyNearbyUsers } = require("../services/alertService.js");
+const jwt = require("jsonwebtoken");
 
-router.post("/", async (req, res) => {
+function authMiddleware(req, res, next) {
   try {
-     console.log(req.body);
-     const {user, latitude, longitude, message, emergencyType } = req.body;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No token provided" });
+    }
 
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+
+
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+
+     const { latitude, longitude, message, emergencyType } = req.body;
 
     // Validate coordinates
     if (latitude == null || longitude == null) {
@@ -21,7 +42,7 @@ router.post("/", async (req, res) => {
 
     // Create alert
     const alert = await createAlert(
-      user,
+      req.user.user_id,
       message,
       latitude,
       longitude,
