@@ -5,7 +5,7 @@ const { createAlert, notifyNearbyUsers } = require("../services/alertService.js"
 
 router.post("/", async (req, res) => {
   try {
-    const { latitude, longitude, message, emergencyType } = req.body;
+    const {user, latitude, longitude, message, emergencyType } = req.body;
 
 
     // Validate coordinates
@@ -20,7 +20,7 @@ router.post("/", async (req, res) => {
 
     // Create alert
     const alert = await createAlert(
-      req.user.id,
+      user,
       message,
       latitude,
       longitude,
