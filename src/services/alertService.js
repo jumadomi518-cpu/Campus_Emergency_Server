@@ -30,8 +30,8 @@ async function notifyNearbyUsers(alert) {
     );
 
     for (const user of users) {
-
-      if (user.user_id === alert.user_id) continue;
+     console.log("Comparing:", user.user_id, alert.user_id);
+      if (Number(user.user_id) === Number(alert.user_id)) continue;
       if (user.role !== "user") continue;
       // Calculate distance using DB location
       const d = distance(
