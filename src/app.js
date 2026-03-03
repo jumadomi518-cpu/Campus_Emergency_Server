@@ -41,9 +41,11 @@ app.use(express.urlencoded({ extended: true }));
 // ROUTES
 const registerRouter = require("./routes/registerRouter.js");
 const loginRouter = require("./routes/loginRouter.js");
+const emergencyRouter = require("./routes/routes/emergency.js");
+
 app.use("/api/register", registerRouter);
 app.use("/api/login", loginRouter);
-
+app.use("/api/emergency", emergencyRouter);
 
 // WEB PUSH
 webpush.setVapidDetails(
@@ -127,7 +129,7 @@ app.post("/api/validate-alert", async (req, res) => {
       }
     }
 
-    res.send({ success: true });
+    res.json({ success: true });
   } catch(err){
     console.error("Validate alert error:", err);
     res.status(401).send("Invalid token");
