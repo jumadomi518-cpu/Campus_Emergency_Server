@@ -7,10 +7,6 @@ router.post("/", async (req, res) => {
   try {
     const { latitude, longitude, message, emergencyType } = req.body;
 
-    // Validate role
-    if (req.role !== "user") {
-      return res.status(403).json({ error: "Only users can create emergencies." });
-    }
 
     // Validate coordinates
     if (latitude == null || longitude == null) {
