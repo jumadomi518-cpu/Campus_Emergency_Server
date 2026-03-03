@@ -9,7 +9,7 @@ async function createAlert(user, message, latitude, longitude, emergencyType) {
       (user_id, name, phone, message, latitude, longitude, emergency_type, status)
       VALUES ($1,$2,$3,$4,$5,$6,$7,'PENDING')
       RETURNING *`,
-    [user.id, user.name, user.phone, message, latitude, longitude, emergencyType]
+    [user.user_id, user.name, user.phone, message, latitude, longitude, emergencyType]
   );
   return result.rows[0];
 }
