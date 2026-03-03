@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
     const { latitude, longitude, message, emergencyType } = req.body;
 
     // Validate role
-    if (req.user.role !== "user") {
+    if (req.role !== "user") {
       return res.status(403).json({ error: "Only users can create emergencies." });
     }
 
