@@ -51,7 +51,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     console.log("Alert created:", alert.id);
 
-    await notifyNearbyUsers(alert, alert.user_id);
+    notifyNearbyUsers(alert);
 
     return res.status(201).json({
       success: true,

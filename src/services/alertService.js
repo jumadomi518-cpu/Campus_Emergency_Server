@@ -18,8 +18,9 @@ const alertLocks = new Map();    // alertId responderId
 const DISTANCE_THRESHOLD = parseInt(process.env.NOTIFY_RADIUS || "200"); // meters
 
 // NOTIFY NEARBY USERS
-async function notifyNearbyUsers(alert, creatorId = 0) {
+async function notifyNearbyUsers(alert) {
 
+ console.log("Creator id is ", alert.user_id);
  if (alertLocks.has(alert.id)) {
   console.log("Alert already locked");
   return;
@@ -31,7 +32,7 @@ async function notifyNearbyUsers(alert, creatorId = 0) {
 
     for (const user of users) {
      console.log("Comparing:", user.user_id, alert.user_id);
-      if (Number(user.user_id) === Number(creatorId)) continue;
+      if (Number(user.user_id) === Number(alert.user_id)) continue;
       if (user.role !== "user") continue;
       // Calculate distance using DB location
       const d = distance(
