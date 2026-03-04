@@ -254,7 +254,6 @@ for (const coords of msg.coordsFromResponder) {
   for (const row of rows) {
     if (notifiedUsers.has(row.user_id)) continue;
     const dis = distance(row.latitude, row.longitude, coords[0], coords[1]);
-    console.log(`Traffic ${row.user_id} distance to alert `, dis);
     if (dis < 100 && row.role === "traffic") {
       const sub = subsMap.get(row.user_id);
 
@@ -373,7 +372,7 @@ for (const coords of msg.coordsFromResponder) {
       try {
         await saveValidation(msg.alertId, ws.userId, msg.vote);
         const trueVotes = await countTrueVotes(msg.alertId);
-        if (trueVotes >= 0) {
+        if (trueVotes >= 1) {
           const alert = await getAlertById(msg.alertId);
           if (alert && alert.status === "PENDING") {
             await updateAlertStatus(alert.id, "ACTIVE");
