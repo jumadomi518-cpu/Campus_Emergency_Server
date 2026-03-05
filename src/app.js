@@ -182,6 +182,43 @@ app.get("/api/alerts", async (req, res) => {
   }
  });
 
+app.get("/api/arrival/:id", async (req, res) => {
+try {
+const alertId = req.params.id;
+const timestamp = new Date();
+await pool.query("UPDATE alerts SET arrived_at = $1 WHERE id = $2", [timestamp, alertId]);
+} catch(error) {
+ console.log("An error occured when setting arival time ", error.message);
+ }
+ });
+
+app.get("/api/analytics", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const totalAlerts = await client.query("SELECT COUNT(*) FROM alerts");
+    const activeAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["ACTIVE"]);
+    const pendingAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["PENDING"]);
+    const resolvedAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["RESOLVED"]);
+    const averageResponseTime = await client.query(
+      "SELECT AVG(EXTRACT(EPOCH FROM (arrived_at - created_at))) AS average_response_time FROM alerts"
+    );
+
+    res.status(200).json({
+      totalAlerts: parseInt(totalAlerts.rows[0].count, 10),
+      active: parseInt(activeAlerts.rows[0].count, 10),
+      pending: parseInt(pendingAlerts.rows[0].count, 10),
+      resolved: parseInt(resolvedAlerts.rows[0].count, 10),
+      averageTime: parseFloat(averageResponseTime.rows[0].average_response_time) || 0
+    });
+  } catch (error) {
+    console.log("An error occurred during fetching analytics:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  } finally {
+    await client.release();
+  }
+});
+
+
 
 //  WEBSOCKET CONNECTION
 wss.on("connection", async ws => {
