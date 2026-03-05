@@ -169,6 +169,18 @@ app.get("/api/alert_info/:alertId", async (req, res) => {
 });
 
 
+app.get("/api/alerts", async (req, res) => {
+   try {
+    const { rows } = await pool.query("SELECT * FROM alerts");
+    if (!rows) {
+      return res.status(404).json({ error: "No alerts"});
+    }
+    return res.json(rows);
+  } catch (error) {
+    console.error("An error occurred while fetching all alerts", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+ });
 
 
 //  WEBSOCKET CONNECTION
