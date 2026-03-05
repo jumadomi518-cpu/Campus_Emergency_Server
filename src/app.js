@@ -187,8 +187,10 @@ try {
 const alertId = req.params.id;
 const timestamp = new Date();
 await pool.query("UPDATE alerts SET arrived_at = $1 WHERE id = $2", [timestamp, alertId]);
+return res.json({ success: true});
 } catch(error) {
  console.log("An error occured when setting arival time ", error.message);
+ return res.json({ error: error.message});
  }
  });
 
