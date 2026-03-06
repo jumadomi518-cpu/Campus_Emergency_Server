@@ -286,13 +286,14 @@ wss.on("connection", async ws => {
             );
             for(const alert of result.rows){
               ws.send(JSON.stringify({
-                type: "EMERGENCY_ASSIGNMENT",
+                type: "OFFLINE_RECOVERY",
                 alertId: alert.id,
                 message: alert.message,
                 name: alert?.name,
                 phone: alert?.phone,
                 latitude: alert.latitude || 0,
                 longitude: alert.longitude || 0,
+                route: alert.route_path,
                 emergencyType: alert.emergency_type,
                 responder: { id: ws.userId, lat: ws.lat || 0, lng: ws.lng || 0 }
               }));

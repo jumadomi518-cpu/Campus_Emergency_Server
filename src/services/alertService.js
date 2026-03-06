@@ -78,7 +78,7 @@ async function notifyNearbyUsers(alert) {
         try {
           await webpush.sendNotification(pushSub, JSON.stringify({
             title: "Mbiu Emergency Alert",
-            body: `An emergency has been triggered ${d.toFixed(2)} meters from you, tap to validate`,
+            body: `${alert.emergency_type} has been triggered ${d.toFixed(2)} meters from you. Please tap to confirm.`,
             url: `https://emergency-system-frontend.vercel.app/pages/user.html?alertId=${alert.id}`
           }));
         } catch (err) {
