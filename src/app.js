@@ -201,8 +201,9 @@ app.get("/api/analytics", async (req, res) => {
     const activeAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["ACTIVE"]);
     const pendingAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["PENDING"]);
     const resolvedAlerts = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["RESOLVED"]);
+    const inProgress = await client.query("SELECT COUNT(*) FROM alerts WHERE status = $1", ["IN_PROGRESS"]);
     const averageResponseTime = await client.query(
-      "SELECT AVG(EXTRACT(EPOCH FROM (arrived_at - created_at))) AS average_response_time FROM alerts"
+      "SELECT AVG(EXTRACT(EPOCH FROM (arrived_at - created_at))) AS average_response_time FROM alerts WHERE arrived_at IS NOT NULL"
     );
 
     res.status(200).json({
@@ -210,6 +211,7 @@ app.get("/api/analytics", async (req, res) => {
       active: parseInt(activeAlerts.rows[0].count, 10),
       pending: parseInt(pendingAlerts.rows[0].count, 10),
       resolved: parseInt(resolvedAlerts.rows[0].count, 10),
+      inProgress: parseInt(inProgress.rows[0].count, 10),
       averageTime: parseFloat(averageResponseTime.rows[0].average_response_time) || 0
     });
   } catch (error) {
@@ -220,7 +222,29 @@ app.get("/api/analytics", async (req, res) => {
   }
 });
 
+ app.patch("/api/resolve/:id", async (req, res) => {
+  try {
 
+    const alertId = req.params.id;
+
+    const result = await pool.query(
+      "UPDATE alerts SET status = $1, resolved_at = NOW() WHERE id = $2 RETURNING *",
+      ["RESOLVED", alertId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Alert not found" });
+    }
+
+    return res.status(200).json({ success: true });
+
+  } catch (error) {
+
+    console.log("Error resolving alert:", error.message);
+
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 //  WEBSOCKET CONNECTION
 wss.on("connection", async ws => {
