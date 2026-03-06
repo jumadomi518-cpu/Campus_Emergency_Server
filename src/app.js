@@ -182,7 +182,7 @@ app.get("/api/alerts", async (req, res) => {
   }
  });
 
-app.get("/api/arrival/:id", async (req, res) => {
+app.patch("/api/arrival/:id", async (req, res) => {
 try {
 const alertId = req.params.id;
 const timestamp = new Date();
