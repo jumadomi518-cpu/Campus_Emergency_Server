@@ -79,7 +79,7 @@ async function notifyNearbyUsers(alert) {
           await webpush.sendNotification(pushSub, JSON.stringify({
             title: "Mbiu Emergency Alert",
             body: `${alert.emergency_type} has been triggered ${d.toFixed(2)} meters from you. Please tap to confirm.`,
-            url: `https://emergency-system-frontend.vercel.app/pages/user.html?alertId=${alert.id}`
+            url: `https://mbiu.space/pages/user.html?alertId=${alert.id}`
           }));
         } catch (err) {
           if (err.statusCode === 410 || err.statusCode === 404) {
@@ -206,7 +206,7 @@ async function assignNearestResponder(alert, rejectedUser) {
           await webpush.sendNotification(pushSub, JSON.stringify({
             title: "Emergency Alert",
             body: `New ${alert.emergency_type} has been triggered: ${alert.message}`,
-            url: `https://emergency-system-frontend.vercel.app/pages/responder.html?alertId=${alert.id}`
+            url: `https://mbiu.space/pages/responder.html?alertId=${alert.id}`
           }));
           console.log(`Push sent to offline responder ${responder.user_id}`);
         } catch (err) {

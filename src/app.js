@@ -347,7 +347,7 @@ for (const coords of msg.coordsFromResponder) {
       const payload = JSON.stringify({
         title: "This Route Will be used by Emergency Responders",
         body: "Tap to view route.",
-        url: `https://emergency-system-frontend.vercel.app/pages/traffic.html?alertId=${msg.alertId}`
+        url: `https://mbiu.space/pages/traffic.html?alertId=${msg.alertId}`
       });
 
       try {
