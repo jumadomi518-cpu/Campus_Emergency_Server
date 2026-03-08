@@ -117,7 +117,7 @@ console.log("An error occured while handling waiting time", error);
    }
 
 
-
+/*
 async function assignNearestResponder(alert, rejectedUser) {
   try {
     console.log("Assign nearest responder called");
@@ -249,7 +249,171 @@ async function assignNearestResponder(alert, rejectedUser) {
     console.error("assignNearestResponder error:", err);
   }
 }
+*/
 
+async function assignNearestResponder(alert, rejectedUser) {
+  try {
+    console.log("Assign nearest responder called");
+    console.log("Rejected user:", rejectedUser);
+
+    // Prevent duplicate assignment
+    if (alertLocks.has(alert.id)) {
+      console.log("Alert already locked");
+      return;
+    }
+
+    // Determine roles
+    let roles = [];
+    if (alert.emergency_type === "ACCIDENT") roles = ["hospital", "police"];
+    if (alert.emergency_type === "FIRE") roles = ["firefighter"];
+
+    if (roles.length === 0) {
+      console.log("No roles defined for this emergency");
+      return;
+    }
+
+    let nearestResponder = null;
+    let nearestDistance = Infinity;
+
+    // Find nearest ONLINE responder
+    clients.forEach(ws => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      if (!roles.includes(ws.role)) return;
+      if (!ws.lat || !ws.lng) return;
+      if (String(ws.userId) === String(rejectedUser)) return;
+
+      // Skip busy responders
+      //if (responderLocks && responderLocks.has(ws.userId)) return;
+
+      const d = distance(alert.latitude, alert.longitude, ws.lat, ws.lng);
+
+      if (d < nearestDistance) {
+        nearestDistance = d;
+        nearestResponder = ws;
+      }
+    });
+
+    // ONLINE RESPONDER FOUND
+    if (nearestResponder) {
+
+      // Lock alert
+      alertLocks.set(alert.id, nearestResponder.userId);
+
+      console.log("Nearest online responder:", nearestResponder.userId);
+
+      try {
+        nearestResponder.send(JSON.stringify({
+          type: "EMERGENCY_ASSIGNMENT",
+        alertId: alert.id,
+        name: alert?.name,
+        phone: alert?.phone,
+        message: alert.message,
+        latitude: alert.latitude,
+        longitude: alert.longitude,
+        emergencyType: alert.emergency_type,
+        responder: {
+          id: responder.userId,
+          lat: responder.lat,
+          lng: responder.lng
+        }
+        }));
+      } catch (err) {
+        console.log("WebSocket send failed:", err);
+        alertLocks.delete(alert.id);
+      }
+
+      return;
+    }
+
+    console.log("No online responders found, checking offline responders");
+
+    // OFFLINE RESPONDER SEARCH
+    const placeholders = roles.map((_, i) => `$${i + 1}`).join(',');
+
+    const query = `
+      SELECT user_id, latitude, longitude 
+      FROM users 
+      WHERE role IN (${placeholders})
+    `;
+
+    const { rows } = await pool.query(query, roles);
+
+    if (rows.length === 0) {
+      console.log("No offline responders in DB");
+      return;
+    }
+
+    let nearestOffline = null;
+    let nearestOfflineDistance = Infinity;
+
+    rows.forEach(user => {
+
+      if (!user.latitude || !user.longitude) return;
+
+      const d = distance(alert.latitude, alert.longitude, user.latitude, user.longitude);
+
+      if (d < nearestOfflineDistance) {
+        nearestOfflineDistance = d;
+        nearestOffline = user;
+      }
+    });
+
+    if (!nearestOffline) {
+      console.log("No valid offline responder location found");
+      return;
+    }
+
+    // Lock alert
+    if (alertLocks.has(alert.id)) return;
+    alertLocks.set(alert.id, nearestOffline.user_id);
+
+    console.log("Nearest offline responder:", nearestOffline.user_id);
+
+    // Get push subscriptions
+    const result = await pool.query(
+      "SELECT * FROM subscriptions WHERE user_id = $1",
+      [nearestOffline.user_id]
+    );
+
+    for (const sub of result.rows) {
+
+      const pushSub = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
+      };
+
+      try {
+
+        await webpush.sendNotification(pushSub, JSON.stringify({
+          title: "Emergency Alert",
+          body: `New ${alert.emergency_type}: ${alert.message}`,
+          url: `https://mbiu.space/pages/responder.html?alertId=${alert.id}`
+        }));
+
+        console.log("Push sent to offline responder", nearestOffline.user_id);
+
+      } catch (err) {
+
+        console.log("Push error:", err);
+
+        // Remove expired subscription
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await pool.query(
+            "DELETE FROM subscriptions WHERE endpoint = $1",
+            [sub.endpoint]
+          );
+        }
+
+      }
+    }
+
+  } catch (err) {
+    console.error("assignNearestResponder error:", err);
+  }
+}
 
 
 // HANDLE RESPONDER RESPONSE
