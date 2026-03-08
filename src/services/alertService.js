@@ -388,8 +388,8 @@ async function assignNearestResponder(alert, rejectedUser) {
       try {
 
         await webpush.sendNotification(pushSub, JSON.stringify({
-          title: "Emergency Alert",
-          body: `New ${alert.emergency_type}: ${alert.message}`,
+          title: "MBIU EMERGENCY ALERT",
+          body: `New ${alert.emergency_type} has been triggered.`,
           url: `https://mbiu.space/pages/responder.html?alertId=${alert.id}`
         }));
 
