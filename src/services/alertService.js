@@ -312,9 +312,9 @@ async function assignNearestResponder(alert, rejectedUser) {
         longitude: alert.longitude,
         emergencyType: alert.emergency_type,
         responder: {
-          id: responder.userId,
-          lat: responder.lat,
-          lng: responder.lng
+          id: nearestResponder.userId,
+          lat: nearestResponder.lat,
+          lng: nearestResponder.lng
         }
         }));
       } catch (err) {
